@@ -1,0 +1,48 @@
+# Environment
+.env
+*.env.local
+
+# Firebase secrets
+google-services.json
+GoogleService-Info.plist
+
+# Flutter generated
+app/lib/firebase_options.dart
+app/.dart_tool/
+app/.flutter-plugins
+app/.flutter-plugins-dependencies
+app/build/
+app/.packages
+app/*.iml
+app/.idea/
+app/android/local.properties
+app/android/key.properties
+app/android/.gradle/
+app/android/app/google-services.json
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+backend/.venv/
+backend/venv/
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Logs
+*.log
+logs/
