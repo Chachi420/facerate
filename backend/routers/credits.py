@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException, Header
 from pydantic import BaseModel
-from ..services.firebase_service import deduct_credits, get_user
+from ..services.firebase_service import deduct_credits
 import firebase_admin.auth as fb_auth
 
 router = APIRouter()
@@ -27,13 +27,11 @@ async def deduct_user_credits(
         raise HTTPException(status_code=401, detail="Invalid auth token")
 
     uid = decoded["uid"]
-    user = await get_user(uid)
-    if user is None:
-        raise HTTPException(status_code=404, detail="User not found")
-
-    current_credits: int = user.get("credits", 0)
-    if current_credits < body.amount:
+    try:
+        remaining = await deduct_credits(uid, body.amount)
+    except ValueError as e:
+        msg = str(e)
+        if "not found" in msg:
+            raise HTTPException(status_code=404, detail="User not found")
         raise HTTPException(status_code=402, detail="Insufficient credits")
-
-    remaining = await deduct_credits(uid, body.amount)
     return DeductResponse(success=True, remaining_credits=remaining)

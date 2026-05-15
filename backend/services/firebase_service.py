@@ -89,20 +89,24 @@ async def get_user(user_id: str) -> dict | None:
     return doc.to_dict() if doc.exists else None
 
 
-async def deduct_credits(user_id: str, amount: int) -> bool:
+async def deduct_credits(user_id: str, amount: int) -> int:
+    """Atomically deduct credits. Returns remaining balance. Raises ValueError if insufficient."""
     db = get_db()
     user_ref = db.collection("users").document(user_id)
+    result = {"remaining": None}
 
     @firestore.transactional
     def _deduct(transaction, ref):
         snapshot = ref.get(transaction=transaction)
         if not snapshot.exists:
-            return False
-        credits = snapshot.get("credits") or 0
-        if credits < amount:
-            return False
-        transaction.update(ref, {"credits": credits - amount})
-        return True
+            raise ValueError("User not found")
+        current = snapshot.get("credits") or 0
+        if current < amount:
+            raise ValueError("Insufficient credits")
+        remaining = current - amount
+        transaction.update(ref, {"credits": remaining})
+        result["remaining"] = remaining
 
     transaction = db.transaction()
-    return _deduct(transaction, user_ref)
+    _deduct(transaction, user_ref)
+    return result["remaining"]
