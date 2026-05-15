@@ -8,7 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 load_dotenv()
 
-from routers import scan, health
+from routers import scan, health, credits
 from services import firebase_service
 
 # Simple in-memory rate limiter: 10 req/min per user_id
@@ -64,3 +64,4 @@ async def rate_limit_middleware(request: Request, call_next):
 
 app.include_router(scan.router)
 app.include_router(health.router)
+app.include_router(credits.router)
