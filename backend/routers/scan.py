@@ -1,4 +1,6 @@
+import time
 import uuid
+from collections import defaultdict
 from datetime import datetime, timezone
 from fastapi import APIRouter, File, UploadFile, Form, HTTPException
 from models.scan_models import ScanResponse
@@ -7,6 +9,9 @@ from services import kimi_service, firebase_service
 router = APIRouter()
 
 MAX_IMAGE_SIZE = 10 * 1024 * 1024  # 10MB
+_rate_limit_store: dict[str, list[float]] = defaultdict(list)
+RATE_LIMIT = 10
+RATE_WINDOW = 60
 
 
 @router.post("/api/scan", response_model=ScanResponse)
@@ -15,6 +20,12 @@ async def scan_face(
     user_id: str = Form(...),
     mood: str = Form(default="good"),
 ):
+    now = time.time()
+    _rate_limit_store[user_id] = [t for t in _rate_limit_store[user_id] if now - t < RATE_WINDOW]
+    if len(_rate_limit_store[user_id]) >= RATE_LIMIT:
+        raise HTTPException(status_code=429, detail="Rate limit exceeded. Max 10 scans per minute.")
+    _rate_limit_store[user_id].append(now)
+
     image_bytes = await image.read()
     if len(image_bytes) > MAX_IMAGE_SIZE:
         raise HTTPException(status_code=400, detail="Image too large. Max 10MB allowed.")
