@@ -108,7 +108,7 @@ class SummaryScreen extends ConsumerWidget {
                           decoration: BoxDecoration(
                             color: AppColors.surface,
                             borderRadius: BorderRadius.circular(AppRadius.pill),
-                            border: Border.all(color: AppColors.purple.withOpacity(0.5), width: 0.5),
+                            border: Border.all(color: AppColors.purple.withValues(alpha: 0.5), width: 0.5),
                           ),
                           child: Text(p, style: const TextStyle(color: AppColors.purpleLight, fontSize: 12)),
                         ))

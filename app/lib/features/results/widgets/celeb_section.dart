@@ -69,7 +69,7 @@ class _MatchRow extends StatelessWidget {
             height: 40,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: color.withOpacity(0.15),
+              color: color.withValues(alpha: 0.15),
             ),
             child: Icon(icon, color: color, size: 20),
           ),

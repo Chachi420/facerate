@@ -1,11 +1,9 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:in_app_purchase/in_app_purchase.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/constants/app_constants.dart';
 import '../providers/credits_provider.dart';
-import '../../auth/providers/auth_provider.dart';
 
 class PaywallScreen extends ConsumerWidget {
   const PaywallScreen({super.key});
@@ -13,7 +11,7 @@ class PaywallScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final selectedProduct = ref.watch(selectedProductProvider);
-    final productsAsync = ref.watch(iapProductsProvider);
+    ref.watch(iapProductsProvider);
 
     final packs = [
       (AppConstants.creditsProduct10, '10 credits', '\$0.99', false),
@@ -47,7 +45,7 @@ class PaywallScreen extends ConsumerWidget {
                 decoration: BoxDecoration(
                   color: AppColors.surface,
                   borderRadius: BorderRadius.circular(AppRadius.large),
-                  border: Border.all(color: AppColors.legendary.withOpacity(0.4), width: 1),
+                  border: Border.all(color: AppColors.legendary.withValues(alpha: 0.4), width: 1),
                 ),
                 child: Column(
                   children: [
@@ -84,7 +82,7 @@ class PaywallScreen extends ConsumerWidget {
                       color: AppColors.surface,
                       borderRadius: BorderRadius.circular(AppRadius.card),
                       border: Border.all(
-                        color: selected ? AppColors.purple : (popular ? AppColors.purple.withOpacity(0.3) : AppColors.border),
+                        color: selected ? AppColors.purple : (popular ? AppColors.purple.withValues(alpha: 0.3) : AppColors.border),
                         width: selected ? 1.5 : 0.5,
                       ),
                     ),

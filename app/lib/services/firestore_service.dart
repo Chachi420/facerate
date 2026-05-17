@@ -5,7 +5,7 @@ import '../models/scan_result.dart';
 class FirestoreService {
   final _db = FirebaseFirestore.instance;
 
-  DocumentReference _userRef(String uid) => _db.collection('users').document(uid);
+  DocumentReference _userRef(String uid) => _db.collection('users').doc(uid);
 
   Stream<UserProfile> userStream(String uid) {
     return _userRef(uid).snapshots().map((snap) {
@@ -89,7 +89,7 @@ class FirestoreService {
       'createdAt': Timestamp.fromDate(result.createdAt),
     };
 
-    await _userRef(uid).collection('scans').document(result.scanId).set(data);
+    await _userRef(uid).collection('scans').doc(result.scanId).set(data);
   }
 
   Future<void> deleteAllUserData(String uid) async {

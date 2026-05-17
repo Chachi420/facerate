@@ -94,7 +94,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
                                 decoration: BoxDecoration(
                                   borderRadius: BorderRadius.circular(80),
                                   border: Border.all(
-                                    color: AppColors.purple.withOpacity(0.5),
+                                    color: AppColors.purple.withValues(alpha: 0.5),
                                     width: 1.5,
                                   ),
                                 ),
@@ -154,7 +154,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
                     onTap: () => _pickImage(ImageSource.gallery),
                   ),
                   GestureDetector(
-                    onTap: () => _pickImage(ImageSource.gallery),
+                    onTap: () => _pickImage(ImageSource.camera),
                     child: Container(
                       width: 72,
                       height: 72,
@@ -187,7 +187,6 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
     const size = 24.0;
     const thickness = 2.0;
     const color = AppColors.purple;
-    const radius = 6.0;
 
     Widget bracket(Alignment align, bool flipX, bool flipY) {
       return Positioned(

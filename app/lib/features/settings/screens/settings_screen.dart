@@ -62,7 +62,7 @@ class SettingsScreen extends ConsumerWidget {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
-                      color: AppColors.legendary.withOpacity(0.2),
+                      color: AppColors.legendary.withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(AppRadius.pill),
                       border: Border.all(color: AppColors.legendary, width: 0.5),
                     ),
@@ -245,7 +245,8 @@ class _ToggleRow extends StatelessWidget {
           Switch(
             value: value,
             onChanged: onChanged,
-            activeColor: AppColors.purple,
+            activeThumbColor: AppColors.purple,
+            activeTrackColor: AppColors.purple.withValues(alpha: 0.5),
             inactiveTrackColor: AppColors.surface2,
           ),
         ],

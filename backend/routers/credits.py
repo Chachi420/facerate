@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException, Header
 from pydantic import BaseModel
-from ..services.firebase_service import deduct_credits
+from services.firebase_service import deduct_credits
 import firebase_admin.auth as fb_auth
 
 router = APIRouter()

@@ -84,7 +84,6 @@ ThemeData buildAppTheme() {
       primary: AppColors.purple,
       secondary: AppColors.teal,
       surface: AppColors.surface,
-      background: AppColors.bg,
     ),
     textTheme: const TextTheme(
       bodyLarge: TextStyle(color: AppColors.textPrimary),

@@ -5,13 +5,19 @@ plugins {
     id "com.google.gms.google-services"
 }
 
+// Redirect Gradle output to Flutter's expected build directory:
+// flutter tool looks for APK at <project>/build/app/outputs/flutter-apk/
+layout.buildDirectory = rootProject.file("../build/app")
+
 android {
     namespace "com.facerate.app"
-    compileSdk 34
+    compileSdk 36
+
+    ndkVersion "26.1.10909125"
 
     defaultConfig {
         applicationId "com.facerate.app"
-        minSdk 21
+        minSdkVersion flutter.minSdkVersion
         targetSdk 34
         versionCode flutter.versionCode
         versionName flutter.versionName
@@ -22,6 +28,7 @@ android {
         release {
             signingConfig signingConfigs.debug
             minifyEnabled false
+            shrinkResources false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }

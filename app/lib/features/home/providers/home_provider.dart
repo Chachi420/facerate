@@ -1,6 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../models/scan_result.dart';
-import '../../../services/firestore_service.dart';
 import '../../auth/providers/auth_provider.dart';
 
 final lastScanProvider = FutureProvider<ScanResult?>((ref) async {

@@ -35,7 +35,6 @@ dependencies:
 
   # Share & Screenshot
   share_plus: ^9.0.0
-  screenshot: ^2.3.0
   path_provider: ^2.1.2
 
   # UI

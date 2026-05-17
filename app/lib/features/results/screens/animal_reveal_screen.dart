@@ -1,5 +1,7 @@
-import 'dart:ui';
+import 'dart:typed_data';
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_theme.dart';
@@ -19,6 +21,7 @@ class AnimalRevealScreen extends ConsumerStatefulWidget {
 
 class _AnimalRevealScreenState extends ConsumerState<AnimalRevealScreen> {
   bool _revealed = false;
+  final _cardKey = GlobalKey();
 
   bool get _isLocked {
     final isFree = widget.result.animal.isFree;
@@ -58,13 +61,15 @@ class _AnimalRevealScreenState extends ConsumerState<AnimalRevealScreen> {
                   style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
               const SizedBox(height: 28),
               // Animal Card
-              Container(
+              RepaintBoundary(
+                key: _cardKey,
+                child: Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
                   color: AppColors.surface,
                   borderRadius: BorderRadius.circular(AppRadius.large),
-                  border: Border.all(color: color.withOpacity(0.6), width: 1.5),
+                  border: Border.all(color: color.withValues(alpha: 0.6), width: 1.5),
                 ),
                 child: Column(
                   children: [
@@ -78,7 +83,7 @@ class _AnimalRevealScreenState extends ConsumerState<AnimalRevealScreen> {
                     const SizedBox(height: 20),
                     if (locked)
                       ImageFiltered(
-                        imageFilter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
+                        imageFilter: ui.ImageFilter.blur(sigmaX: 6, sigmaY: 6),
                         child: Text(animal.emoji, style: const TextStyle(fontSize: 64)),
                       )
                     else
@@ -111,6 +116,7 @@ class _AnimalRevealScreenState extends ConsumerState<AnimalRevealScreen> {
                     ],
                   ],
                 ),
+              ),
               ),
               const SizedBox(height: 20),
               // Rarity dots
@@ -184,7 +190,11 @@ class _AnimalRevealScreenState extends ConsumerState<AnimalRevealScreen> {
     );
   }
 
-  Future<dynamic> _captureCard(BuildContext context) async {
-    return null; // Screenshot logic via screenshot package
+  Future<Uint8List?> _captureCard(BuildContext context) async {
+    final boundary = _cardKey.currentContext?.findRenderObject() as RenderRepaintBoundary?;
+    if (boundary == null) return null;
+    final image = await boundary.toImage(pixelRatio: 2.0);
+    final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+    return byteData?.buffer.asUint8List();
   }
 }

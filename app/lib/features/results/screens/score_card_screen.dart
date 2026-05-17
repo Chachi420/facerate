@@ -1,9 +1,9 @@
 import 'dart:typed_data';
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
-import 'package:go_router/go_router.dart';
-import 'package:screenshot/screenshot.dart';
 import 'package:intl/intl.dart';
+
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/share_utils.dart';
 import '../../../models/scan_result.dart';
@@ -18,17 +18,25 @@ class ScoreCardScreen extends StatefulWidget {
 }
 
 class _ScoreCardScreenState extends State<ScoreCardScreen> {
-  final _screenshotController = ScreenshotController();
+  final _cardKey = GlobalKey();
+
+  Future<Uint8List?> _capture() async {
+    final boundary = _cardKey.currentContext?.findRenderObject() as RenderRepaintBoundary?;
+    if (boundary == null) return null;
+    final image = await boundary.toImage(pixelRatio: 2.0);
+    final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+    return byteData?.buffer.asUint8List();
+  }
 
   Future<void> _share() async {
-    final bytes = await _screenshotController.capture(pixelRatio: 2.0);
+    final bytes = await _capture();
     if (bytes == null) return;
     await shareImage(bytes,
         'My FaceRate score: ${widget.result.score.toStringAsFixed(1)}/10 — ${widget.result.archetype} · ${widget.result.animal.emoji}${widget.result.animal.name} · facerate.app');
   }
 
   Future<void> _save() async {
-    final bytes = await _screenshotController.capture(pixelRatio: 2.0);
+    final bytes = await _capture();
     if (bytes == null) return;
     await saveImageToGallery(bytes);
   }
@@ -47,8 +55,8 @@ class _ScoreCardScreenState extends State<ScoreCardScreen> {
           children: [
             Expanded(
               child: Center(
-                child: Screenshot(
-                  controller: _screenshotController,
+                child: RepaintBoundary(
+                  key: _cardKey,
                   child: _ScoreCard(result: widget.result),
                 ),
               ),
@@ -208,7 +216,7 @@ class _ScoreCard extends StatelessWidget {
             // Celeb row
             Row(
               children: [
-                CircleAvatar(radius: 16, backgroundColor: AppColors.pink.withOpacity(0.2),
+                CircleAvatar(radius: 16, backgroundColor: AppColors.pink.withValues(alpha: 0.2),
                     child: const Icon(Icons.person, color: AppColors.pink, size: 18)),
                 const SizedBox(width: 8),
                 Expanded(
@@ -234,9 +242,9 @@ class _ScoreCard extends StatelessWidget {
               children: result.strengths.take(3).map((t) => Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
-                  color: AppColors.purple.withOpacity(0.15),
+                  color: AppColors.purple.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(AppRadius.pill),
-                  border: Border.all(color: AppColors.purple.withOpacity(0.3)),
+                  border: Border.all(color: AppColors.purple.withValues(alpha: 0.3)),
                 ),
                 child: Text(t, style: const TextStyle(color: AppColors.purpleLight, fontSize: 9)),
               )).toList(),

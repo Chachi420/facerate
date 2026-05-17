@@ -1,4 +1,3 @@
-import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -8,7 +7,6 @@ import '../../../core/constants/app_constants.dart';
 import '../../../services/admob_service.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../home/providers/home_provider.dart';
-import '../../scan/providers/scan_provider.dart';
 import '../../../models/scan_result.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
@@ -164,7 +162,7 @@ class _LastScanBanner extends ConsumerWidget {
               width: 44,
               height: 44,
               decoration: BoxDecoration(
-                color: AppColors.purple.withOpacity(0.2),
+                color: AppColors.purple.withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(AppRadius.small),
               ),
               child: Center(child: Text(scan.animal.emoji, style: const TextStyle(fontSize: 22))),
@@ -204,9 +202,9 @@ class _PercentileStrip extends StatelessWidget {
       margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       decoration: BoxDecoration(
-        color: AppColors.teal.withOpacity(0.15),
+        color: AppColors.teal.withValues(alpha: 0.15),
         borderRadius: BorderRadius.circular(AppRadius.small),
-        border: Border.all(color: AppColors.teal.withOpacity(0.3), width: 0.5),
+        border: Border.all(color: AppColors.teal.withValues(alpha: 0.3), width: 0.5),
       ),
       child: Row(
         children: [
@@ -247,7 +245,7 @@ class _ScanHero extends ConsumerWidget {
                     height: 200,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      border: Border.all(color: AppColors.purple.withOpacity(0.22), width: 20),
+                      border: Border.all(color: AppColors.purple.withValues(alpha: 0.22), width: 20),
                     ),
                   ),
                   Container(
@@ -255,7 +253,7 @@ class _ScanHero extends ConsumerWidget {
                     height: 160,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      border: Border.all(color: AppColors.purple.withOpacity(0.44), width: 8),
+                      border: Border.all(color: AppColors.purple.withValues(alpha: 0.44), width: 8),
                     ),
                   ),
                   Container(

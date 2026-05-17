@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -138,7 +137,7 @@ class _LoadingView extends StatelessWidget {
                       height: 160,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        border: Border.all(color: AppColors.purple.withOpacity(0.3), width: 2),
+                        border: Border.all(color: AppColors.purple.withValues(alpha: 0.3), width: 2),
                       ),
                     ),
                   ),
@@ -149,7 +148,7 @@ class _LoadingView extends StatelessWidget {
                       height: 120,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        border: Border.all(color: AppColors.purple.withOpacity(0.5), width: 2),
+                        border: Border.all(color: AppColors.purple.withValues(alpha: 0.5), width: 2),
                       ),
                     ),
                   ),
