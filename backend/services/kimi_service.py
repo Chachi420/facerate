@@ -1,11 +1,36 @@
 import httpx
 import base64
 import json
+import re
 import os
 from prompts.face_analysis_prompt import FACE_ANALYSIS_PROMPT
 
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 GROQ_URL = "https://api.groq.com/openai/v1/chat/completions"
+
+
+def _extract_json(content: str) -> dict:
+    # Strip markdown code blocks
+    content = content.strip()
+    if content.startswith("```"):
+        lines = content.split("\n")
+        lines = lines[1:]
+        if lines and lines[-1].strip() == "```":
+            lines = lines[:-1]
+        content = "\n".join(lines).strip()
+
+    # Try direct parse
+    try:
+        return json.loads(content)
+    except json.JSONDecodeError:
+        pass
+
+    # Extract first {...} block from response
+    match = re.search(r'\{.*\}', content, re.DOTALL)
+    if match:
+        return json.loads(match.group())
+
+    raise ValueError(f"No valid JSON found in model response: {content[:300]}")
 
 
 async def analyze_face(image_bytes: bytes) -> dict:
@@ -22,6 +47,10 @@ async def analyze_face(image_bytes: bytes) -> dict:
                 "model": "meta-llama/llama-4-scout-17b-16e-instruct",
                 "messages": [
                     {
+                        "role": "system",
+                        "content": "You are a face analysis AI. Always respond with a single valid JSON object and nothing else. No markdown, no explanation, no code blocks.",
+                    },
+                    {
                         "role": "user",
                         "content": [
                             {
@@ -35,22 +64,15 @@ async def analyze_face(image_bytes: bytes) -> dict:
                                 "text": FACE_ANALYSIS_PROMPT,
                             },
                         ],
-                    }
+                    },
                 ],
                 "temperature": 0.7,
                 "max_tokens": 2000,
+                "response_format": {"type": "json_object"},
             },
         )
 
         response.raise_for_status()
         result = response.json()
         content = result["choices"][0]["message"]["content"].strip()
-
-        if content.startswith("```"):
-            lines = content.split("\n")
-            lines = lines[1:]
-            if lines and lines[-1].strip() == "```":
-                lines = lines[:-1]
-            content = "\n".join(lines)
-
-        return json.loads(content)
+        return _extract_json(content)
