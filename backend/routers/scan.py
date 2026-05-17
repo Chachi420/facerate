@@ -19,6 +19,7 @@ async def scan_face(
     image: UploadFile = File(...),
     user_id: str = Form(...),
     mood: str = Form(default="good"),
+    mode: str = Form(default="honest"),
 ):
     now = time.time()
     _rate_limit_store[user_id] = [t for t in _rate_limit_store[user_id] if now - t < RATE_WINDOW]
@@ -34,7 +35,7 @@ async def scan_face(
         raise HTTPException(status_code=400, detail="File must be an image.")
 
     try:
-        analysis = await kimi_service.analyze_face(image_bytes)
+        analysis = await kimi_service.analyze_face(image_bytes, mode)
     except Exception as e:
         raise HTTPException(status_code=502, detail=f"AI analysis failed: {str(e)}")
 

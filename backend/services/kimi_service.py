@@ -33,8 +33,21 @@ def _extract_json(content: str) -> dict:
     raise ValueError(f"No valid JSON found in model response: {content[:300]}")
 
 
-async def analyze_face(image_bytes: bytes) -> dict:
+async def analyze_face(image_bytes: bytes, mode: str = "honest") -> dict:
     image_b64 = base64.b64encode(image_bytes).decode("utf-8")
+
+    if mode == "nice":
+        system_msg = (
+            "You are an encouraging face analysis AI. Emphasize genuine strengths, "
+            "frame areas to improve gently and constructively, and keep the overall tone warm and supportive. "
+            "Always respond with a single valid JSON object and nothing else. No markdown, no explanation, no code blocks."
+        )
+    else:
+        system_msg = (
+            "You are a brutally honest, editorial face analysis AI. Give direct, accurate, "
+            "unsentimental assessments like a fashion editor would — not cruel, but never flattering. "
+            "Always respond with a single valid JSON object and nothing else. No markdown, no explanation, no code blocks."
+        )
 
     async with httpx.AsyncClient(timeout=60.0) as client:
         response = await client.post(
@@ -48,7 +61,7 @@ async def analyze_face(image_bytes: bytes) -> dict:
                 "messages": [
                     {
                         "role": "system",
-                        "content": "You are a face analysis AI. Always respond with a single valid JSON object and nothing else. No markdown, no explanation, no code blocks.",
+                        "content": system_msg,
                     },
                     {
                         "role": "user",
