@@ -1,7 +1,7 @@
 FACE_ANALYSIS_PROMPT = """
 FIRST: Check if this image contains a clearly visible human face.
-If there is NO human face in the image, return exactly this JSON and nothing else:
-{"error": "no_face", "message": "No human face detected in this image."}
+If there is NO human face in the image, look at what IS actually in the image and return exactly this JSON and nothing else:
+{"error": "no_face", "pun": "<write a short, witty, funny pun (1-2 sentences) that references the SPECIFIC subject of this image and explains why you can't rate it — e.g. if it's a mountain: 'Even Everest can't peak our interest — we need cheekbones, not summits. Drop a selfie!', if it's a dog: 'Your dog is a 10/10 but FaceRate is humans-only... for now 🐾 Show us YOUR face!', if it's pizza: 'We tried rating this pizza\\'s jawline — 10/10 crust definition — but we need your face, not your dinner!'. Be creative, warm, and funny. Keep it under 2 sentences.>"}
 
 If a human face IS present, analyze it carefully and return ONLY a valid JSON object with these exact fields.
 Be honest, editorial, and grounded — not flattering, not harsh.
