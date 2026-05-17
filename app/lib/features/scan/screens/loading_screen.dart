@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../services/api_service.dart';
 import '../../auth/providers/auth_provider.dart';
+export '../../../services/api_service.dart' show NoFaceException;
 
 class LoadingScreen extends ConsumerStatefulWidget {
   final File imageFile;
@@ -24,6 +25,7 @@ class _LoadingScreenState extends ConsumerState<LoadingScreen> with TickerProvid
 
   int _activeStep = 0;
   String? _error;
+  bool _isNoFace = false;
 
   final _steps = [
     'Facial landmarks mapped',
@@ -62,9 +64,15 @@ class _LoadingScreenState extends ConsumerState<LoadingScreen> with TickerProvid
       if (mounted) {
         context.go('/summary', extra: result);
       }
-    } catch (e) {
+    } catch (e, st) {
+      debugPrint('=== SCAN ERROR ===');
+      debugPrint('Error: $e');
+      debugPrint('Stack: $st');
       if (mounted) {
-        setState(() => _error = e.toString().replaceFirst('Exception: ', ''));
+        setState(() {
+          _isNoFace = e is NoFaceException;
+          _error = e.toString().replaceFirst('Exception: ', '');
+        });
       }
     }
   }
@@ -85,10 +93,14 @@ class _LoadingScreenState extends ConsumerState<LoadingScreen> with TickerProvid
       child: Scaffold(
         backgroundColor: AppColors.bg,
         body: SafeArea(
-          child: _error != null ? _ErrorView(error: _error!, onRetry: () {
-            setState(() => _error = null);
-            _analyze();
-          }) : _LoadingView(
+          child: _error != null
+              ? (_isNoFace
+                  ? _PunView(pun: _error!)
+                  : _ErrorView(error: _error!, onRetry: () {
+                      setState(() { _error = null; _isNoFace = false; });
+                      _analyze();
+                    }))
+              : _LoadingView(
             outerController: _outerController,
             midController: _midController,
             progressController: _progressController,
@@ -251,6 +263,62 @@ class _ErrorView extends StatelessWidget {
             TextButton(
               onPressed: () => context.pop(),
               child: const Text('Go back', style: TextStyle(color: AppColors.textSecondary)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _PunView extends StatelessWidget {
+  final String pun;
+  const _PunView({required this.pun});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 100,
+              height: 100,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: AppColors.surface,
+                border: Border.all(color: AppColors.purple.withValues(alpha: 0.5), width: 2),
+              ),
+              child: const Center(
+                child: Text('🤔', style: TextStyle(fontSize: 44)),
+              ),
+            ),
+            const SizedBox(height: 24),
+            const Text(
+              'That\'s not a face!',
+              style: TextStyle(color: AppColors.textPrimary, fontSize: 22, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: AppColors.surface,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: AppColors.purple.withValues(alpha: 0.3)),
+              ),
+              child: Text(
+                pun,
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: AppColors.textPrimary, fontSize: 15, height: 1.6),
+              ),
+            ),
+            const SizedBox(height: 28),
+            ElevatedButton.icon(
+              onPressed: () => context.pop(),
+              icon: const Icon(Icons.camera_alt_outlined, size: 18),
+              label: const Text('Pick a selfie'),
             ),
           ],
         ),

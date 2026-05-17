@@ -1,9 +1,17 @@
 import 'dart:io';
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:image/image.dart' as img;
 import 'package:path_provider/path_provider.dart';
 import '../core/constants/app_constants.dart';
 import '../models/scan_result.dart';
+
+class NoFaceException implements Exception {
+  final String message;
+  const NoFaceException(this.message);
+  @override
+  String toString() => message;
+}
 
 class ApiService {
   final _dio = Dio(BaseOptions(
@@ -54,6 +62,12 @@ class ApiService {
   }
 
   Exception _humanizeError(DioException e) {
+    debugPrint('=== DIO ERROR ===');
+    debugPrint('Type: ${e.type}');
+    debugPrint('Message: ${e.message}');
+    debugPrint('Error: ${e.error}');
+    debugPrint('Status: ${e.response?.statusCode}');
+    debugPrint('Response: ${e.response?.data}');
     if (e.type == DioExceptionType.connectionTimeout ||
         e.type == DioExceptionType.receiveTimeout) {
       return Exception('The analysis is taking too long. Please try again.');
@@ -66,6 +80,15 @@ class ApiService {
       return Exception('Too many scans. Please wait a moment and try again.');
     }
     if (status == 400) {
+      final data = e.response?.data;
+      if (data is Map) {
+        final detail = data['detail'];
+        if (detail is Map && detail['error_type'] == 'no_face') {
+          final msg = detail['message'] as String? ?? 'That\'s not a face! Please use a clear selfie.';
+          return NoFaceException(msg);
+        }
+        if (detail is String) return Exception(detail);
+      }
       return Exception('Invalid image. Please use a clear selfie.');
     }
     if (status != null && status >= 500) {
