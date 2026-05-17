@@ -4,52 +4,46 @@ import json
 import os
 from prompts.face_analysis_prompt import FACE_ANALYSIS_PROMPT
 
-KIMI_API_KEY = os.getenv("KIMI_API_KEY")
-KIMI_BASE_URL = "https://api.moonshot.cn/v1"
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent"
 
 
 async def analyze_face(image_bytes: bytes) -> dict:
     image_b64 = base64.b64encode(image_bytes).decode("utf-8")
 
+    payload = {
+        "contents": [
+            {
+                "parts": [
+                    {
+                        "inline_data": {
+                            "mime_type": "image/jpeg",
+                            "data": image_b64,
+                        }
+                    },
+                    {"text": FACE_ANALYSIS_PROMPT},
+                ]
+            }
+        ],
+        "generationConfig": {
+            "temperature": 0.7,
+            "maxOutputTokens": 2000,
+        },
+    }
+
     async with httpx.AsyncClient(timeout=60.0) as client:
         response = await client.post(
-            f"{KIMI_BASE_URL}/chat/completions",
-            headers={
-                "Authorization": f"Bearer {KIMI_API_KEY}",
-                "Content-Type": "application/json",
-            },
-            json={
-                "model": "moonshot-v1-8k-vision-preview",
-                "messages": [
-                    {
-                        "role": "user",
-                        "content": [
-                            {
-                                "type": "image_url",
-                                "image_url": {
-                                    "url": f"data:image/jpeg;base64,{image_b64}"
-                                },
-                            },
-                            {
-                                "type": "text",
-                                "text": FACE_ANALYSIS_PROMPT,
-                            },
-                        ],
-                    }
-                ],
-                "temperature": 0.7,
-                "max_tokens": 2000,
-            },
+            GEMINI_URL,
+            params={"key": GEMINI_API_KEY},
+            json=payload,
         )
-
         response.raise_for_status()
         result = response.json()
-        content = result["choices"][0]["message"]["content"].strip()
+        content = result["candidates"][0]["content"]["parts"][0]["text"].strip()
 
-        # Strip markdown code blocks if present
         if content.startswith("```"):
             lines = content.split("\n")
-            lines = lines[1:]  # remove opening ```json
+            lines = lines[1:]
             if lines and lines[-1].strip() == "```":
                 lines = lines[:-1]
             content = "\n".join(lines)
