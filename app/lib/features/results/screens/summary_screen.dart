@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -10,6 +11,7 @@ import '../widgets/glowup_section.dart';
 import '../widgets/celeb_section.dart';
 import '../widgets/ai_insights_section.dart';
 import '../../auth/providers/auth_provider.dart';
+import '../../history/providers/history_provider.dart';
 
 class SummaryScreen extends ConsumerWidget {
   final ScanResult result;
@@ -21,6 +23,23 @@ class SummaryScreen extends ConsumerWidget {
     final openSection = ref.watch(openSectionProvider);
     final userAsync = ref.watch(currentUserProfileStreamProvider);
     final credits = userAsync.when(data: (u) => u?.credits ?? 0, loading: () => 0, error: (_, __) => 0);
+
+    final historyAsync = ref.watch(scanHistoryProvider);
+    final previousScore = historyAsync.when(
+      data: (scans) {
+        final others = scans.where((s) => s.scanId != result.scanId).toList();
+        return others.isEmpty ? null : others.first.score;
+      },
+      loading: () => null,
+      error: (_, __) => null,
+    );
+    final allTimeMax = historyAsync.when(
+      data: (scans) => scans.isEmpty ? result.score : scans.map((s) => s.score).reduce(max),
+      loading: () => null,
+      error: (_, __) => null,
+    );
+    final delta = previousScore != null ? result.score - previousScore : null;
+    final isPB = allTimeMax != null && result.score >= allTimeMax;
 
     void toggleSection(int index) {
       ref.read(openSectionProvider.notifier).state = openSection == index ? null : index;
@@ -77,7 +96,20 @@ class SummaryScreen extends ConsumerWidget {
                               ],
                             ),
                           ),
-                          const Text('Overall score', style: TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+                          const SizedBox(height: 4),
+                          _ScoreBadge(score: result.score),
+                          if (delta != null) ...[
+                            const SizedBox(height: 4),
+                            Row(
+                              children: [
+                                Icon(delta >= 0 ? Icons.arrow_upward : Icons.arrow_downward,
+                                    size: 12, color: delta >= 0 ? AppColors.teal : AppColors.red),
+                                const SizedBox(width: 2),
+                                Text('${delta.abs().toStringAsFixed(1)} from last',
+                                    style: TextStyle(color: delta >= 0 ? AppColors.teal : AppColors.red, fontSize: 11)),
+                              ],
+                            ),
+                          ],
                         ],
                       ),
                     ),
@@ -91,6 +123,18 @@ class SummaryScreen extends ConsumerWidget {
                               style: const TextStyle(color: AppColors.tealLight, fontSize: 20, fontWeight: FontWeight.bold)),
                           const Text('of all users this week',
                               style: TextStyle(color: AppColors.textSecondary, fontSize: 11)),
+                          if (isPB) ...[
+                            const SizedBox(height: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: AppColors.amber.withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(AppRadius.pill),
+                                border: Border.all(color: AppColors.amber.withValues(alpha: 0.5), width: 0.5),
+                              ),
+                              child: const Text('🏆 New PB', style: TextStyle(color: AppColors.amber, fontSize: 11, fontWeight: FontWeight.w600)),
+                            ),
+                          ],
                         ],
                       ),
                     ),
@@ -201,6 +245,32 @@ class SummaryScreen extends ConsumerWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _ScoreBadge extends StatelessWidget {
+  final double score;
+  const _ScoreBadge({required this.score});
+
+  @override
+  Widget build(BuildContext context) {
+    final (emoji, label, color) = score >= 8.5
+        ? ('👑', 'Legendary', AppColors.amber)
+        : score >= 7.0
+            ? ('🔥', 'Top Tier', AppColors.purple)
+            : score >= 5.0
+                ? ('😤', 'Solid', AppColors.teal)
+                : ('💀', 'Brutal', AppColors.red);
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(AppRadius.pill),
+        border: Border.all(color: color.withValues(alpha: 0.5), width: 0.5),
+      ),
+      child: Text('$emoji $label', style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.w600)),
     );
   }
 }

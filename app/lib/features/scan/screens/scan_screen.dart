@@ -30,8 +30,9 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
       final file = File(picked.path);
       final compressed = await compressImage(file);
       final mood = ref.read(selectedMoodProvider);
+      final mode = ref.read(selectedModeProvider);
       if (mounted) {
-        context.push('/loading', extra: {'imageFile': compressed, 'mood': mood});
+        context.push('/loading', extra: {'imageFile': compressed, 'mood': mood, 'mode': mode});
       }
     } catch (e) {
       if (mounted) {
@@ -47,6 +48,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
   @override
   Widget build(BuildContext context) {
     final mood = ref.watch(selectedMoodProvider);
+    final mode = ref.watch(selectedModeProvider);
 
     return Scaffold(
       backgroundColor: AppColors.bg,
@@ -138,6 +140,35 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
                         _MoodButton(emoji: '😊', value: 'good', current: mood, onTap: (v) => ref.read(selectedMoodProvider.notifier).state = v),
                         const SizedBox(width: 16),
                         _MoodButton(emoji: '🔥', value: 'energized', current: mood, onTap: (v) => ref.read(selectedMoodProvider.notifier).state = v),
+                      ],
+                    ),
+                    const SizedBox(height: 20),
+                    const Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text('Tone', style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
+                    ),
+                    const SizedBox(height: 10),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _ModeButton(
+                            emoji: '🔥',
+                            label: 'Roast Me',
+                            value: 'honest',
+                            current: mode,
+                            onTap: (v) => ref.read(selectedModeProvider.notifier).state = v,
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: _ModeButton(
+                            emoji: '🤍',
+                            label: 'Be Nice',
+                            value: 'nice',
+                            current: mode,
+                            onTap: (v) => ref.read(selectedModeProvider.notifier).state = v,
+                          ),
+                        ),
                       ],
                     ),
                   ],
@@ -280,6 +311,43 @@ class _MoodButton extends StatelessWidget {
       child: Opacity(
         opacity: selected ? 1.0 : 0.4,
         child: Text(emoji, style: const TextStyle(fontSize: 32)),
+      ),
+    );
+  }
+}
+
+class _ModeButton extends StatelessWidget {
+  final String emoji;
+  final String label;
+  final String value;
+  final String current;
+  final void Function(String) onTap;
+
+  const _ModeButton({required this.emoji, required this.label, required this.value, required this.current, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final selected = value == current;
+    return GestureDetector(
+      onTap: () => onTap(value),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 10),
+        decoration: BoxDecoration(
+          color: selected ? AppColors.purple.withValues(alpha: 0.2) : AppColors.surface,
+          borderRadius: BorderRadius.circular(AppRadius.pill),
+          border: Border.all(
+            color: selected ? AppColors.purple : AppColors.border,
+            width: selected ? 1.0 : 0.5,
+          ),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(emoji, style: const TextStyle(fontSize: 16)),
+            const SizedBox(width: 6),
+            Text(label, style: TextStyle(color: selected ? AppColors.purpleLight : AppColors.textSecondary, fontSize: 13, fontWeight: selected ? FontWeight.w600 : FontWeight.normal)),
+          ],
+        ),
       ),
     );
   }

@@ -14,6 +14,7 @@ import '../../features/results/screens/score_card_screen.dart';
 import '../../features/history/screens/history_screen.dart';
 import '../../features/credits/screens/paywall_screen.dart';
 import '../../features/settings/screens/settings_screen.dart';
+import '../../features/pokedex/screens/pokedex_screen.dart';
 import '../../models/scan_result.dart';
 
 class _SplashScreen extends StatefulWidget {
@@ -88,6 +89,7 @@ final appRouter = GoRouter(
         return LoadingScreen(
           imageFile: extra['imageFile'] as File,
           mood: extra['mood'] as String,
+          mode: extra['mode'] as String? ?? 'honest',
         );
       },
     ),
@@ -120,6 +122,10 @@ final appRouter = GoRouter(
     GoRoute(
       path: '/settings',
       builder: (_, __) => const SettingsScreen(),
+    ),
+    GoRoute(
+      path: '/pokedex',
+      builder: (_, __) => const PokedexScreen(),
     ),
   ],
 );

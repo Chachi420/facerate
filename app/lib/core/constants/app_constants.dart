@@ -1,5 +1,5 @@
 class AppConstants {
-  static const String backendUrl = 'https://facerate-api-uc.a.run.app';
+  static const String backendUrl = 'https://facerate-8lno.onrender.com';
   static const String localBackendUrl = 'http://10.0.2.2:8000';
 
   // Use localBackendUrl during development; switch to backendUrl for production

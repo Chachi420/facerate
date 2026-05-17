@@ -10,8 +10,9 @@ export '../../../services/api_service.dart' show NoFaceException;
 class LoadingScreen extends ConsumerStatefulWidget {
   final File imageFile;
   final String mood;
+  final String mode;
 
-  const LoadingScreen({super.key, required this.imageFile, required this.mood});
+  const LoadingScreen({super.key, required this.imageFile, required this.mood, this.mode = 'honest'});
 
   @override
   ConsumerState<LoadingScreen> createState() => _LoadingScreenState();
@@ -26,6 +27,7 @@ class _LoadingScreenState extends ConsumerState<LoadingScreen> with TickerProvid
   int _activeStep = 0;
   String? _error;
   bool _isNoFace = false;
+  bool _isReturningUser = false;
 
   final _steps = [
     'Facial landmarks mapped',
@@ -41,6 +43,12 @@ class _LoadingScreenState extends ConsumerState<LoadingScreen> with TickerProvid
     _midController = AnimationController(vsync: this, duration: const Duration(seconds: 5))..repeat();
     _innerController = AnimationController(vsync: this, duration: const Duration(seconds: 3))..repeat();
     _progressController = AnimationController(vsync: this, duration: const Duration(seconds: 10))..forward();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final userAsync = ref.read(currentUserProfileStreamProvider);
+      final totalScans = userAsync.when(data: (u) => u?.totalScans ?? 0, loading: () => 0, error: (_, __) => 0);
+      if (mounted) setState(() => _isReturningUser = totalScans > 0);
+    });
 
     _runSteps();
     _analyze();
@@ -60,7 +68,7 @@ class _LoadingScreenState extends ConsumerState<LoadingScreen> with TickerProvid
     final apiService = ApiService();
 
     try {
-      final result = await apiService.analyzeFace(widget.imageFile, userId, widget.mood);
+      final result = await apiService.analyzeFace(widget.imageFile, userId, widget.mood, widget.mode);
       if (mounted) {
         context.go('/summary', extra: result);
       }
@@ -106,6 +114,7 @@ class _LoadingScreenState extends ConsumerState<LoadingScreen> with TickerProvid
             progressController: _progressController,
             activeStep: _activeStep,
             steps: _steps,
+            isReturningUser: _isReturningUser,
           ),
         ),
       ),
@@ -119,6 +128,7 @@ class _LoadingView extends StatelessWidget {
   final AnimationController progressController;
   final int activeStep;
   final List<String> steps;
+  final bool isReturningUser;
 
   const _LoadingView({
     required this.outerController,
@@ -126,6 +136,7 @@ class _LoadingView extends StatelessWidget {
     required this.progressController,
     required this.activeStep,
     required this.steps,
+    this.isReturningUser = false,
   });
 
   @override
@@ -178,10 +189,12 @@ class _LoadingView extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 32),
-            const Text('Analyzing your face',
-                style: TextStyle(color: AppColors.textPrimary, fontSize: 22, fontWeight: FontWeight.bold)),
+            Text(
+                isReturningUser ? 'Welcome back 👀' : 'Analyzing your face',
+                style: const TextStyle(color: AppColors.textPrimary, fontSize: 22, fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
-            const Text('AI is mapping 48 facial landmarks\nand finding your archetype',
+            Text(
+                isReturningUser ? 'Let\'s see how you look today' : 'AI is mapping 48 facial landmarks\nand finding your archetype',
                 textAlign: TextAlign.center,
                 style: TextStyle(color: AppColors.textSecondary, fontSize: 13, height: 1.5)),
             const SizedBox(height: 24),

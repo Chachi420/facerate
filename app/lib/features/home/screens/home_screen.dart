@@ -393,7 +393,7 @@ class _BottomNav extends StatelessWidget {
     final items = [
       (Icons.home_outlined, Icons.home, 'Home'),
       (Icons.history_outlined, Icons.history, 'History'),
-      (Icons.bar_chart_outlined, Icons.bar_chart, 'Progress'),
+      (Icons.catching_pokemon_outlined, Icons.catching_pokemon, 'Collection'),
       (Icons.person_outline, Icons.person, 'Profile'),
     ];
 
@@ -406,12 +406,12 @@ class _BottomNav extends StatelessWidget {
         children: List.generate(items.length, (i) {
           final (outlineIcon, filledIcon, label) = items[i];
           final active = currentIndex == i;
-          final disabled = i == 2;
 
           return Expanded(
             child: GestureDetector(
-              onTap: disabled ? null : () {
+              onTap: () {
                 if (i == 1) context.push('/history');
+                else if (i == 2) context.push('/pokedex');
                 else if (i == 3) context.push('/settings');
                 else onTap(i);
               },
@@ -422,7 +422,7 @@ class _BottomNav extends StatelessWidget {
                   children: [
                     Icon(
                       active ? filledIcon : outlineIcon,
-                      color: disabled ? AppColors.textDim : (active ? AppColors.purple : AppColors.textSecondary),
+                      color: active ? AppColors.purple : AppColors.textSecondary,
                       size: 22,
                     ),
                     const SizedBox(height: 2),
@@ -430,7 +430,7 @@ class _BottomNav extends StatelessWidget {
                       label,
                       style: TextStyle(
                         fontSize: 10,
-                        color: disabled ? AppColors.textDim : (active ? AppColors.purple : AppColors.textSecondary),
+                        color: active ? AppColors.purple : AppColors.textSecondary,
                       ),
                     ),
                   ],

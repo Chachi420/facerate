@@ -20,16 +20,17 @@ class ApiService {
     receiveTimeout: const Duration(seconds: 60),
   ));
 
-  Future<ScanResult> analyzeFace(File imageFile, String userId, String mood) async {
+  Future<ScanResult> analyzeFace(File imageFile, String userId, String mood, [String mode = 'honest']) async {
     final compressed = await _compressImage(imageFile);
-    return _retryRequest(() => _doAnalyzeFace(compressed, userId, mood));
+    return _retryRequest(() => _doAnalyzeFace(compressed, userId, mood, mode));
   }
 
-  Future<ScanResult> _doAnalyzeFace(File imageFile, String userId, String mood) async {
+  Future<ScanResult> _doAnalyzeFace(File imageFile, String userId, String mood, String mode) async {
     final formData = FormData.fromMap({
       'image': await MultipartFile.fromFile(imageFile.path, filename: 'face.jpg'),
       'user_id': userId,
       'mood': mood,
+      'mode': mode,
     });
 
     final response = await _dio.post('/api/scan', data: formData);
