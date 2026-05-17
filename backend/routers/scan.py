@@ -38,6 +38,9 @@ async def scan_face(
     except Exception as e:
         raise HTTPException(status_code=502, detail=f"AI analysis failed: {str(e)}")
 
+    if analysis.get("error") == "no_face":
+        raise HTTPException(status_code=400, detail="No human face detected. Please use a clear selfie.")
+
     scan_id = str(uuid.uuid4())
     created_at = datetime.now(timezone.utc)
 

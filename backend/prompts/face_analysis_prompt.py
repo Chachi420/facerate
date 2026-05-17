@@ -1,5 +1,9 @@
 FACE_ANALYSIS_PROMPT = """
-Analyze this face photo carefully and return ONLY a valid JSON object with these exact fields.
+FIRST: Check if this image contains a clearly visible human face.
+If there is NO human face in the image, return exactly this JSON and nothing else:
+{"error": "no_face", "message": "No human face detected in this image."}
+
+If a human face IS present, analyze it carefully and return ONLY a valid JSON object with these exact fields.
 Be honest, editorial, and grounded — not flattering, not harsh.
 
 {
