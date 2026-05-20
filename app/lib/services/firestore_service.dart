@@ -92,6 +92,39 @@ class FirestoreService {
     await _userRef(uid).collection('scans').doc(result.scanId).set(data);
   }
 
+  Future<void> updateScanStats(String uid) async {
+    final doc = await _userRef(uid).get();
+    if (!doc.exists) return;
+    final user = UserProfile.fromFirestore(doc.data() as Map<String, dynamic>);
+
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final lastScan = user.lastScanDate;
+
+    int newStreak = user.streak;
+    if (lastScan == null) {
+      newStreak = 1;
+    } else {
+      final lastDay = DateTime(lastScan.year, lastScan.month, lastScan.day);
+      final dayDiff = today.difference(lastDay).inDays;
+      if (dayDiff == 0) {
+        // Already scanned today — preserve current streak
+      } else if (dayDiff == 1) {
+        newStreak = user.streak + 1;
+      } else {
+        newStreak = 1;
+      }
+    }
+
+    await _userRef(uid).update({
+      'totalScans': FieldValue.increment(1),
+      'streak': newStreak,
+      'longestStreak': newStreak > user.longestStreak ? newStreak : user.longestStreak,
+      'lastScanDate': Timestamp.fromDate(now),
+      'streakBroken': false,
+    });
+  }
+
   Future<void> deleteAllUserData(String uid) async {
     final scans = await _userRef(uid).collection('scans').get();
     final batch = _db.batch();

@@ -13,6 +13,12 @@ class NoFaceException implements Exception {
   String toString() => message;
 }
 
+class NoCreditsException implements Exception {
+  const NoCreditsException();
+  @override
+  String toString() => 'Not enough credits. Get more to keep scanning.';
+}
+
 class ApiService {
   final _dio = Dio(BaseOptions(
     baseUrl: AppConstants.apiBaseUrl,
@@ -52,6 +58,11 @@ class ApiService {
       try {
         return await request();
       } on DioException catch (e) {
+        // Don't retry on client errors — they won't change on retry.
+        final status = e.response?.statusCode;
+        if (status != null && status >= 400 && status < 500) {
+          throw _humanizeError(e);
+        }
         attempts++;
         if (attempts >= maxAttempts) {
           throw _humanizeError(e);
@@ -77,6 +88,9 @@ class ApiService {
       return Exception('No internet connection. Please check your network and try again.');
     }
     final status = e.response?.statusCode;
+    if (status == 402) {
+      return const NoCreditsException();
+    }
     if (status == 429) {
       return Exception('Too many scans. Please wait a moment and try again.');
     }

@@ -55,12 +55,13 @@ class _MatchRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cl = Cl.of(context);
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: AppColors.surface2,
+        color: cl.surfaceH,
         borderRadius: BorderRadius.circular(AppRadius.small),
-        border: Border.all(color: AppColors.border, width: 0.5),
+        border: Border.all(color: cl.rule, width: 0.5),
       ),
       child: Row(
         children: [
@@ -79,14 +80,14 @@ class _MatchRow extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(label,
-                    style: const TextStyle(color: AppColors.textMuted, fontSize: 10)),
+                    style: TextStyle(color: cl.inkWhisper, fontSize: 10)),
                 Text(name,
-                    style: const TextStyle(
-                        color: AppColors.textPrimary,
+                    style: TextStyle(
+                        color: cl.ink,
                         fontWeight: FontWeight.bold,
                         fontSize: 14)),
                 Text(detail,
-                    style: const TextStyle(color: AppColors.textSecondary, fontSize: 11),
+                    style: TextStyle(color: cl.inkMuted, fontSize: 11),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis),
               ],

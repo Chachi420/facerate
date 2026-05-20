@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../../../core/theme/app_theme.dart';
 
 class SectionCard extends StatelessWidget {
@@ -23,12 +24,13 @@ class SectionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cl = Cl.of(context);
     return Container(
       margin: const EdgeInsets.only(bottom: 7),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: cl.surface,
         borderRadius: BorderRadius.circular(AppRadius.card),
-        border: Border.all(color: AppColors.border, width: 0.5),
+        border: Border.all(color: cl.rule, width: 0.5),
       ),
       child: Column(
         children: [
@@ -40,8 +42,7 @@ class SectionCard extends StatelessWidget {
               child: Row(
                 children: [
                   Container(
-                    width: 36,
-                    height: 36,
+                    width: 36, height: 36,
                     decoration: BoxDecoration(
                       color: iconColor.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(8),
@@ -54,17 +55,17 @@ class SectionCard extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(title,
-                            style: const TextStyle(
-                                color: AppColors.textPrimary, fontWeight: FontWeight.w600, fontSize: 14)),
+                          style: GoogleFonts.dmSans(
+                            fontSize: 14, fontWeight: FontWeight.w600, color: cl.ink)),
                         Text(summary,
-                            style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+                          style: GoogleFonts.dmSans(fontSize: 12, color: cl.inkMuted)),
                       ],
                     ),
                   ),
                   AnimatedRotation(
                     turns: isOpen ? 0.25 : 0,
                     duration: const Duration(milliseconds: 200),
-                    child: const Icon(Icons.chevron_right, color: AppColors.textSecondary),
+                    child: Icon(Icons.chevron_right, color: cl.inkMuted),
                   ),
                 ],
               ),

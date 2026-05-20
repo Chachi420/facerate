@@ -38,6 +38,7 @@ class ScanResponse(BaseModel):
     features: dict[str, FeatureScore]
     golden_ratio_score: float
     skin_tone: str
+    skin_type: str
     strengths: list[str]
     areas_to_improve: list[str]
     haircut_recommendations: list[str]
@@ -45,6 +46,7 @@ class ScanResponse(BaseModel):
     skincare_routine: list[str]
     glasses_frames: list[str]
     collar_tips: str
+    feature_tips: dict[str, list[str]]
     celebrity_lookalike: CelebMatch
     fictional_character: CharacterMatch
     perceived_age: int
@@ -52,6 +54,9 @@ class ScanResponse(BaseModel):
     animal: AnimalMatch
     mood_logged: str
     created_at: str
+    delta: Optional[float] = None
+    previous_score: Optional[float] = None
+    what_changed: Optional[str] = None
 
 
 class ErrorResponse(BaseModel):

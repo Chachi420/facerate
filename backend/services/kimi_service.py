@@ -80,7 +80,7 @@ async def analyze_face(image_bytes: bytes, mode: str = "honest") -> dict:
                     },
                 ],
                 "temperature": 0.7,
-                "max_tokens": 2000,
+                "max_tokens": 3500,
                 "response_format": {"type": "json_object"},
             },
         )

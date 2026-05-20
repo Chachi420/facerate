@@ -4,16 +4,23 @@ import 'package:shared_preferences/shared_preferences.dart';
 class SettingsState {
   final bool notificationsEnabled;
   final bool saveHistory;
+  final bool darkMode; // false = light (default)
 
   const SettingsState({
     this.notificationsEnabled = false,
     this.saveHistory = false,
+    this.darkMode = false,
   });
 
-  SettingsState copyWith({bool? notificationsEnabled, bool? saveHistory}) {
+  SettingsState copyWith({
+    bool? notificationsEnabled,
+    bool? saveHistory,
+    bool? darkMode,
+  }) {
     return SettingsState(
       notificationsEnabled: notificationsEnabled ?? this.notificationsEnabled,
       saveHistory: saveHistory ?? this.saveHistory,
+      darkMode: darkMode ?? this.darkMode,
     );
   }
 }
@@ -28,6 +35,7 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
     state = SettingsState(
       notificationsEnabled: prefs.getBool('notifications') ?? false,
       saveHistory: prefs.getBool('saveHistory') ?? false,
+      darkMode: prefs.getBool('darkMode') ?? false,
     );
   }
 
@@ -42,6 +50,14 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
     await prefs.setBool('saveHistory', value);
     state = state.copyWith(saveHistory: value);
   }
+
+  Future<void> setDarkMode(bool value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('darkMode', value);
+    state = state.copyWith(darkMode: value);
+  }
+
+  Future<void> reload() => _load();
 }
 
 final settingsProvider = StateNotifierProvider<SettingsNotifier, SettingsState>(

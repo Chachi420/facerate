@@ -1,6 +1,6 @@
 import os
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 import firebase_admin
 from firebase_admin import credentials, firestore
 
@@ -83,10 +83,83 @@ async def update_user_stats(user_id: str, scan_date: datetime) -> None:
     )
 
 
+async def get_recent_scans(user_id: str, limit: int = 1, exclude_id: str | None = None) -> list[dict]:
+    db = get_db()
+    scans_ref = db.collection("users").document(user_id).collection("scans")
+    query = scans_ref.order_by("createdAt", direction="DESCENDING").limit(limit + (1 if exclude_id else 0))
+    docs = query.stream()
+    results = []
+    for doc in docs:
+        data = doc.to_dict()
+        if exclude_id and data.get("scanId") == exclude_id:
+            continue
+        results.append(data)
+        if len(results) >= limit:
+            break
+    return results
+
+
 async def get_user(user_id: str) -> dict | None:
     db = get_db()
     doc = db.collection("users").document(user_id).get()
     return doc.to_dict() if doc.exists else None
+
+
+async def award_credits(user_id: str, amount: int) -> int:
+    """Add credits to a user. Returns new total. Creates the user document if missing."""
+    db = get_db()
+    user_ref = db.collection("users").document(user_id)
+    result = {"total": None}
+
+    @firestore.transactional
+    def _award(transaction, ref):
+        snapshot = ref.get(transaction=transaction)
+        if not snapshot.exists:
+            transaction.set(ref, {"uid": user_id, "credits": amount, "isPro": False})
+            result["total"] = amount
+        else:
+            current = snapshot.get("credits") or 0
+            new_total = current + amount
+            transaction.update(ref, {"credits": new_total})
+            result["total"] = new_total
+
+    transaction = db.transaction()
+    _award(transaction, user_ref)
+    return result["total"]
+
+
+async def activate_pro(user_id: str, expires_at_ms: int) -> int:
+    """Set isPro=True on a user. Returns current credit balance."""
+    db = get_db()
+    user_ref = db.collection("users").document(user_id)
+    user_ref.update({"isPro": True, "proExpiresAt": expires_at_ms})
+    doc = user_ref.get()
+    return (doc.to_dict() or {}).get("credits", 0)
+
+
+async def is_purchase_processed(user_id: str, purchase_token: str) -> bool:
+    """Return True if this purchase token has already been credited (idempotency)."""
+    db = get_db()
+    doc = (
+        db.collection("users")
+        .document(user_id)
+        .collection("purchases")
+        .document(purchase_token)
+        .get()
+    )
+    return doc.exists
+
+
+async def record_purchase(user_id: str, purchase_token: str, product_id: str) -> None:
+    """Store a processed purchase token to prevent double-crediting."""
+    db = get_db()
+    (
+        db.collection("users")
+        .document(user_id)
+        .collection("purchases")
+        .document(purchase_token)
+        .set({"productId": product_id, "processedAt": datetime.now(timezone.utc)})
+    )
 
 
 async def deduct_credits(user_id: str, amount: int) -> int:

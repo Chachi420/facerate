@@ -12,6 +12,7 @@ class ScanResult {
   final Map<String, FeatureScore> features;
   final double goldenRatioScore;
   final String skinTone;
+  final String skinType;
   final List<String> strengths;
   final List<String> areasToImprove;
   final List<String> haircutRecommendations;
@@ -19,6 +20,7 @@ class ScanResult {
   final List<String> skincareRoutine;
   final List<String> glassesFrames;
   final String collarTips;
+  final Map<String, List<String>> featureTips;
   final CelebMatch celebrityLookalike;
   final CharacterMatch fictionalCharacter;
   final int perceivedAge;
@@ -26,6 +28,11 @@ class ScanResult {
   final AnimalMatch animal;
   final String moodLogged;
   final DateTime createdAt;
+
+  // Variance / "what changed" fields
+  final double? delta;
+  final double? previousScore;
+  final String? whatChanged;
 
   const ScanResult({
     required this.scanId,
@@ -37,6 +44,7 @@ class ScanResult {
     required this.features,
     required this.goldenRatioScore,
     required this.skinTone,
+    required this.skinType,
     required this.strengths,
     required this.areasToImprove,
     required this.haircutRecommendations,
@@ -44,6 +52,7 @@ class ScanResult {
     required this.skincareRoutine,
     required this.glassesFrames,
     required this.collarTips,
+    required this.featureTips,
     required this.celebrityLookalike,
     required this.fictionalCharacter,
     required this.perceivedAge,
@@ -51,12 +60,20 @@ class ScanResult {
     required this.animal,
     required this.moodLogged,
     required this.createdAt,
+    this.delta,
+    this.previousScore,
+    this.whatChanged,
   });
 
   factory ScanResult.fromJson(Map<String, dynamic> json) {
     final featuresRaw = json['features'] as Map<String, dynamic>? ?? {};
     final features = featuresRaw.map(
       (k, v) => MapEntry(k, FeatureScore.fromJson(v as Map<String, dynamic>)),
+    );
+
+    final featureTipsRaw = json['feature_tips'] as Map<String, dynamic>? ?? {};
+    final featureTips = featureTipsRaw.map(
+      (k, v) => MapEntry(k, List<String>.from(v as List? ?? [])),
     );
 
     return ScanResult(
@@ -69,6 +86,7 @@ class ScanResult {
       features: features,
       goldenRatioScore: (json['golden_ratio_score'] as num?)?.toDouble() ?? 7.0,
       skinTone: json['skin_tone'] as String? ?? '',
+      skinType: json['skin_type'] as String? ?? 'normal',
       strengths: List<String>.from(json['strengths'] as List? ?? []),
       areasToImprove: List<String>.from(json['areas_to_improve'] as List? ?? []),
       haircutRecommendations: List<String>.from(json['haircut_recommendations'] as List? ?? []),
@@ -76,10 +94,9 @@ class ScanResult {
       skincareRoutine: List<String>.from(json['skincare_routine'] as List? ?? []),
       glassesFrames: List<String>.from(json['glasses_frames'] as List? ?? []),
       collarTips: json['collar_tips'] as String? ?? '',
-      celebrityLookalike: CelebMatch.fromJson(
-          json['celebrity_lookalike'] as Map<String, dynamic>? ?? {}),
-      fictionalCharacter: CharacterMatch.fromJson(
-          json['fictional_character'] as Map<String, dynamic>? ?? {}),
+      featureTips: featureTips,
+      celebrityLookalike: CelebMatch.fromJson(json['celebrity_lookalike'] as Map<String, dynamic>? ?? {}),
+      fictionalCharacter: CharacterMatch.fromJson(json['fictional_character'] as Map<String, dynamic>? ?? {}),
       perceivedAge: json['perceived_age'] as int? ?? 25,
       vibe: json['vibe'] as String? ?? '',
       animal: AnimalMatch.fromJson(json['animal'] as Map<String, dynamic>? ?? {}),
@@ -87,6 +104,9 @@ class ScanResult {
       createdAt: json['created_at'] != null
           ? DateTime.tryParse(json['created_at'] as String) ?? DateTime.now()
           : DateTime.now(),
+      delta: (json['delta'] as num?)?.toDouble(),
+      previousScore: (json['previous_score'] as num?)?.toDouble(),
+      whatChanged: json['what_changed'] as String?,
     );
   }
 
@@ -94,6 +114,11 @@ class ScanResult {
     final featuresRaw = data['features'] as Map<String, dynamic>? ?? {};
     final features = featuresRaw.map(
       (k, v) => MapEntry(k, FeatureScore.fromJson(v as Map<String, dynamic>)),
+    );
+
+    final featureTipsRaw = data['featureTips'] as Map<String, dynamic>? ?? {};
+    final featureTips = featureTipsRaw.map(
+      (k, v) => MapEntry(k, List<String>.from(v as List? ?? [])),
     );
 
     return ScanResult(
@@ -106,6 +131,7 @@ class ScanResult {
       features: features,
       goldenRatioScore: (data['goldenRatioScore'] as num?)?.toDouble() ?? 7.0,
       skinTone: data['skinTone'] as String? ?? '',
+      skinType: data['skinType'] as String? ?? 'normal',
       strengths: List<String>.from(data['strengths'] as List? ?? []),
       areasToImprove: List<String>.from(data['areasToImprove'] as List? ?? []),
       haircutRecommendations: List<String>.from(data['haircutRecommendations'] as List? ?? []),
@@ -113,15 +139,17 @@ class ScanResult {
       skincareRoutine: List<String>.from(data['skincareRoutine'] as List? ?? []),
       glassesFrames: List<String>.from(data['glassesFrames'] as List? ?? []),
       collarTips: data['collarTips'] as String? ?? '',
-      celebrityLookalike: CelebMatch.fromFirestore(
-          data['celebrityLookalike'] as Map<String, dynamic>? ?? {}),
-      fictionalCharacter: CharacterMatch.fromFirestore(
-          data['fictionalCharacter'] as Map<String, dynamic>? ?? {}),
+      featureTips: featureTips,
+      celebrityLookalike: CelebMatch.fromFirestore(data['celebrityLookalike'] as Map<String, dynamic>? ?? {}),
+      fictionalCharacter: CharacterMatch.fromFirestore(data['fictionalCharacter'] as Map<String, dynamic>? ?? {}),
       perceivedAge: data['perceivedAge'] as int? ?? 25,
       vibe: data['vibe'] as String? ?? '',
       animal: AnimalMatch.fromFirestore(data['animal'] as Map<String, dynamic>? ?? {}),
       moodLogged: data['moodLogged'] as String? ?? 'good',
       createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      delta: (data['delta'] as num?)?.toDouble(),
+      previousScore: (data['previousScore'] as num?)?.toDouble(),
+      whatChanged: data['whatChanged'] as String?,
     );
   }
 
@@ -135,6 +163,7 @@ class ScanResult {
         'features': features.map((k, v) => MapEntry(k, v.toJson())),
         'golden_ratio_score': goldenRatioScore,
         'skin_tone': skinTone,
+        'skin_type': skinType,
         'strengths': strengths,
         'areas_to_improve': areasToImprove,
         'haircut_recommendations': haircutRecommendations,
@@ -142,6 +171,7 @@ class ScanResult {
         'skincare_routine': skincareRoutine,
         'glasses_frames': glassesFrames,
         'collar_tips': collarTips,
+        'feature_tips': featureTips,
         'celebrity_lookalike': celebrityLookalike.toJson(),
         'fictional_character': fictionalCharacter.toJson(),
         'perceived_age': perceivedAge,
@@ -149,5 +179,8 @@ class ScanResult {
         'animal': animal.toJson(),
         'mood_logged': moodLogged,
         'created_at': createdAt.toIso8601String(),
+        if (delta != null) 'delta': delta,
+        if (previousScore != null) 'previous_score': previousScore,
+        if (whatChanged != null) 'what_changed': whatChanged,
       };
 }

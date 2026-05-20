@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../widgets/eyebrow_text.dart';
 import '../providers/onboarding_provider.dart';
 
 class OnboardingScreen extends ConsumerStatefulWidget {
@@ -23,7 +25,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
 
   void _next() {
     if (_currentPage < 2) {
-      _controller.nextPage(duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
+      _controller.nextPage(
+          duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
     } else {
       _finish();
     }
@@ -36,32 +39,102 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final cl = Cl.of(context);
+
     return Scaffold(
-      backgroundColor: AppColors.bg,
+      backgroundColor: cl.canvas,
       body: SafeArea(
-        child: Stack(
+        child: Column(
           children: [
-            PageView(
-              controller: _controller,
-              onPageChanged: (i) => setState(() => _currentPage = i),
-              children: const [_Page1(), _Page2(), _Page3()],
-            ),
-            Positioned(
-              top: 8,
-              right: 16,
-              child: TextButton(
-                onPressed: _finish,
-                child: const Text('Skip', style: TextStyle(color: AppColors.textSecondary)),
+            // Skip
+            Align(
+              alignment: Alignment.topRight,
+              child: GestureDetector(
+                onTap: _finish,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(0, 14, 20, 8),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: cl.surfaceH,
+                      borderRadius: BorderRadius.circular(AppRadius.pill),
+                    ),
+                    child: EyebrowText.muted('Skip'),
+                  ),
+                ),
               ),
             ),
-            Positioned(
-              bottom: 0,
-              left: 0,
-              right: 0,
-              child: _BottomBar(
-                currentPage: _currentPage,
-                onNext: _next,
-                onSignIn: () => context.go('/auth'),
+
+            // Pages
+            Expanded(
+              child: PageView(
+                controller: _controller,
+                onPageChanged: (i) => setState(() => _currentPage = i),
+                children: const [_Page1(), _Page2(), _Page3()],
+              ),
+            ),
+
+            // Bottom bar
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 36),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Dot indicators
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: List.generate(3, (i) {
+                      final active = i == _currentPage;
+                      return AnimatedContainer(
+                        duration: const Duration(milliseconds: 220),
+                        margin: const EdgeInsets.symmetric(horizontal: 3),
+                        width: active ? 28 : 6,
+                        height: 6,
+                        decoration: BoxDecoration(
+                          color: active ? cl.accent : cl.inkWhisper,
+                          borderRadius: BorderRadius.circular(AppRadius.pill),
+                        ),
+                      );
+                    }),
+                  ),
+                  const SizedBox(height: 20),
+
+                  // CTA button
+                  GestureDetector(
+                    onTap: _next,
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      decoration: BoxDecoration(
+                        color: cl.accent,
+                        borderRadius: BorderRadius.circular(AppRadius.card),
+                        boxShadow: cl.buttonShadow,
+                      ),
+                      alignment: Alignment.center,
+                      child: Text(
+                        _currentPage == 2 ? 'Find my archetype →' : 'Next →',
+                        style: GoogleFonts.dmSans(
+                          fontSize: 15, fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+
+                  // Sign in link
+                  GestureDetector(
+                    onTap: () => context.go('/auth'),
+                    child: Text(
+                      'Already have an account? Sign in',
+                      style: GoogleFonts.dmSans(
+                        fontSize: 13, color: cl.inkMuted,
+                        decoration: TextDecoration.underline,
+                        decorationColor: cl.inkMuted,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
@@ -71,112 +144,67 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   }
 }
 
-class _BottomBar extends StatelessWidget {
-  final int currentPage;
-  final VoidCallback onNext;
-  final VoidCallback onSignIn;
-
-  const _BottomBar({required this.currentPage, required this.onNext, required this.onSignIn});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      color: AppColors.bg,
-      padding: const EdgeInsets.fromLTRB(24, 12, 24, 32),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: List.generate(3, (i) {
-              return AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
-                margin: const EdgeInsets.symmetric(horizontal: 3),
-                width: i == currentPage ? 20 : 6,
-                height: 6,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(3),
-                  color: i == currentPage ? AppColors.purple : AppColors.textDim,
-                ),
-              );
-            }),
-          ),
-          const SizedBox(height: 16),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: onNext,
-              child: Text(currentPage == 2 ? 'Find my archetype — free' : 'Next'),
-            ),
-          ),
-          const SizedBox(height: 8),
-          GestureDetector(
-            onTap: onSignIn,
-            child: const Text(
-              'Already have an account? Sign in',
-              style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
+// ── Page 1: Discover your archetype ──────────────────────────────────────────
 class _Page1 extends StatelessWidget {
   const _Page1();
 
   @override
   Widget build(BuildContext context) {
+    final cl = Cl.of(context);
     return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 60, 24, 160),
+      padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
-              border: Border.all(color: AppColors.purple, width: 1),
-              borderRadius: BorderRadius.circular(AppRadius.pill),
+          Text(
+            'mirror.',
+            style: GoogleFonts.dmSans(
+              fontSize: 44, fontWeight: FontWeight.w700,
+              color: cl.ink, letterSpacing: -0.02 * 44, height: 1,
             ),
-            child: const Text('AI FACE ANALYSIS',
-                style: TextStyle(color: AppColors.purple, fontSize: 11, fontWeight: FontWeight.w600, letterSpacing: 1.2)),
           ),
+          const SizedBox(height: 6),
+          EyebrowText.muted('Face intelligence'),
+          const SizedBox(height: 28),
+          Container(height: 0.5, color: cl.rule),
           const SizedBox(height: 20),
-          RichText(
-            text: const TextSpan(
-              style: TextStyle(fontSize: 30, fontWeight: FontWeight.bold, color: AppColors.textPrimary, height: 1.2),
-              children: [
-                TextSpan(text: 'Discover your face '),
-                TextSpan(text: 'archetype', style: TextStyle(color: AppColors.purple)),
-              ],
+          Text(
+            'Discover your\narchetype.',
+            style: GoogleFonts.dmSans(
+              fontSize: 32, fontWeight: FontWeight.w700,
+              color: cl.ink, letterSpacing: -0.02 * 32, height: 1.2,
             ),
           ),
-          const SizedBox(height: 12),
-          const Text(
-            'Get your honest score, glow-up plan, and celebrity match — in seconds.',
-            style: TextStyle(color: AppColors.textSecondary, fontSize: 15, height: 1.5),
+          const SizedBox(height: 10),
+          Text(
+            'AI face analysis that gives you a score, a spirit animal, and a path forward.',
+            style: GoogleFonts.dmSans(fontSize: 15, color: cl.inkMuted, height: 1.6),
           ),
-          const SizedBox(height: 32),
+          const SizedBox(height: 24),
+
+          // Archetype cards
           Row(
             children: [
-              _ArchetypeCard(icon: '👁', label: 'Dark Ethereal', score: '8.1', color: AppColors.purple),
-              const SizedBox(width: 8),
-              _ArchetypeCard(icon: '☀', label: 'Soft Golden', score: '7.6', color: AppColors.teal),
-              const SizedBox(width: 8),
-              _ArchetypeCard(icon: '🔥', label: 'Bold Classic', score: '8.4', color: AppColors.pink),
+              _ArchetypeCard(emoji: '👁', label: 'Dark Ethereal', score: '8.1', rarity: 'epic'),
+              const SizedBox(width: 10),
+              _ArchetypeCard(emoji: '☀️', label: 'Soft Golden', score: '7.6', rarity: 'uncommon'),
+              const SizedBox(width: 10),
+              _ArchetypeCard(emoji: '🐆', label: 'Snow Leopard', score: '8.4', rarity: 'legendary'),
             ],
           ),
-          const SizedBox(height: 32),
-          const Row(
+          const SizedBox(height: 20),
+          Container(height: 0.5, color: cl.rule),
+          const SizedBox(height: 14),
+          Row(
             children: [
-              _AvatarStack(),
-              SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  '2.1M people discovered their archetype this month',
-                  style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
-                ),
+              Container(
+                width: 6, height: 6,
+                decoration: BoxDecoration(shape: BoxShape.circle, color: cl.teal),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                '2.1M people discovered their archetype this month',
+                style: GoogleFonts.dmSans(fontSize: 12, color: cl.inkMuted),
               ),
             ],
           ),
@@ -187,30 +215,52 @@ class _Page1 extends StatelessWidget {
 }
 
 class _ArchetypeCard extends StatelessWidget {
-  final String icon;
-  final String label;
-  final String score;
-  final Color color;
-
-  const _ArchetypeCard({required this.icon, required this.label, required this.score, required this.color});
+  final String emoji, label, score, rarity;
+  const _ArchetypeCard({
+    required this.emoji, required this.label,
+    required this.score, required this.rarity,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final cl = Cl.of(context);
+    final color = cl.rarityColor(rarity);
     return Expanded(
       child: Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: AppColors.surface,
+          color: cl.surface,
           borderRadius: BorderRadius.circular(AppRadius.card),
-          border: Border.all(color: AppColors.border, width: 0.5),
+          border: Border.all(color: color.withValues(alpha: 0.35), width: 0.5),
+          boxShadow: cl.subtleShadow,
         ),
         child: Column(
           children: [
-            Text(icon, style: const TextStyle(fontSize: 20)),
+            Text(emoji, style: const TextStyle(fontSize: 24)),
+            const SizedBox(height: 8),
+            Text(
+              label,
+              style: GoogleFonts.dmSans(
+                fontSize: 11, fontWeight: FontWeight.w500, color: cl.ink,
+              ),
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
             const SizedBox(height: 6),
-            Text(label, style: const TextStyle(color: AppColors.textPrimary, fontSize: 10, fontWeight: FontWeight.w600), textAlign: TextAlign.center),
-            const SizedBox(height: 4),
-            Text(score, style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.bold)),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(AppRadius.pill),
+              ),
+              child: Text(
+                score,
+                style: GoogleFonts.dmSans(
+                  fontSize: 15, fontWeight: FontWeight.w700, color: color,
+                ),
+              ),
+            ),
           ],
         ),
       ),
@@ -218,134 +268,234 @@ class _ArchetypeCard extends StatelessWidget {
   }
 }
 
-class _AvatarStack extends StatelessWidget {
-  const _AvatarStack();
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: 70,
-      height: 30,
-      child: Stack(
-        children: List.generate(4, (i) {
-          return Positioned(
-            left: i * 16.0,
-            child: CircleAvatar(
-              radius: 14,
-              backgroundColor: [AppColors.purple, AppColors.teal, AppColors.pink, AppColors.amber][i],
-              child: Text(['A', 'B', 'C', 'D'][i], style: const TextStyle(fontSize: 10, color: Colors.white)),
-            ),
-          );
-        }),
-      ),
-    );
-  }
-}
-
+// ── Page 2: Scan your face ────────────────────────────────────────────────────
 class _Page2 extends StatelessWidget {
   const _Page2();
 
   @override
   Widget build(BuildContext context) {
+    final cl = Cl.of(context);
     return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 80, 24, 160),
+      padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            width: 100,
-            height: 100,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(color: AppColors.purple, width: 2),
-              color: AppColors.surface,
+          EyebrowText.muted('Step 1'),
+          const SizedBox(height: 12),
+          Text(
+            'Scan your face.',
+            style: GoogleFonts.dmSans(
+              fontSize: 32, fontWeight: FontWeight.w700,
+              color: cl.ink, letterSpacing: -0.02 * 32, height: 1.2,
             ),
-            child: const Icon(Icons.face, color: AppColors.purple, size: 48),
           ),
-          const SizedBox(height: 32),
-          const Text('Upload a selfie,\nget your report',
-              style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: AppColors.textPrimary, height: 1.3),
-              textAlign: TextAlign.center),
+          const SizedBox(height: 10),
+          Text(
+            'One selfie. Front-facing, natural light. Our model does the rest.',
+            style: GoogleFonts.dmSans(fontSize: 15, color: cl.inkMuted, height: 1.6),
+          ),
           const SizedBox(height: 24),
+
+          // Viewfinder mock
+          Container(
+            width: double.infinity,
+            height: 190,
+            decoration: BoxDecoration(
+              color: cl.surface,
+              borderRadius: BorderRadius.circular(AppRadius.large),
+              border: Border.all(color: cl.rule, width: 1),
+              boxShadow: cl.subtleShadow,
+            ),
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                _corners(cl.accent),
+                Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.face_outlined, color: cl.inkMuted, size: 48),
+                    const SizedBox(height: 10),
+                    EyebrowText.muted('Position face here'),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 20),
+          Container(height: 0.5, color: cl.rule),
+          const SizedBox(height: 14),
+
+          // Feature pills
           Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            alignment: WrapAlignment.center,
-            children: ['Face score', 'Animal match', 'Glow-up plan']
-                .map((t) => Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: AppColors.surface,
-                        borderRadius: BorderRadius.circular(AppRadius.pill),
-                        border: Border.all(color: AppColors.border, width: 0.5),
-                      ),
-                      child: Text(t, style: const TextStyle(color: AppColors.textSecondary, fontSize: 13)),
-                    ))
-                .toList(),
+            spacing: 8, runSpacing: 8,
+            children: ['Face score', 'Animal archetype', 'Glow-up plan'].map((t) =>
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: cl.accentDim,
+                  borderRadius: BorderRadius.circular(AppRadius.pill),
+                  border: Border.all(color: cl.accent.withValues(alpha: 0.3), width: 0.5),
+                ),
+                child: Text(t, style: GoogleFonts.dmSans(
+                  fontSize: 12, fontWeight: FontWeight.w500, color: cl.accent)),
+              )
+            ).toList(),
           ),
         ],
       ),
     );
   }
+
+  static Widget _corners(Color accent) {
+    return Stack(
+      children: [
+        Positioned(top: 18, left: 18, child: _Corner(color: accent, top: true, left: true)),
+        Positioned(top: 18, right: 18, child: _Corner(color: accent, top: true, left: false)),
+        Positioned(bottom: 18, left: 18, child: _Corner(color: accent, top: false, left: true)),
+        Positioned(bottom: 18, right: 18, child: _Corner(color: accent, top: false, left: false)),
+      ],
+    );
+  }
 }
 
+class _Corner extends StatelessWidget {
+  final Color color;
+  final bool top, left;
+  const _Corner({required this.color, required this.top, required this.left});
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 18, height: 18,
+      child: CustomPaint(
+        painter: _CornerPainter(color: color, top: top, left: left),
+      ),
+    );
+  }
+}
+
+class _CornerPainter extends CustomPainter {
+  final Color color;
+  final bool top, left;
+  const _CornerPainter({required this.color, required this.top, required this.left});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()..color = color..strokeWidth = 2..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round;
+    final x = left ? 0.0 : size.width;
+    final y = top ? 0.0 : size.height;
+    final dx = left ? size.width : -size.width;
+    final dy = top ? size.height : -size.height;
+    canvas.drawLine(Offset(x, y), Offset(x + dx, y), paint);
+    canvas.drawLine(Offset(x, y), Offset(x, y + dy), paint);
+  }
+
+  @override
+  bool shouldRepaint(_CornerPainter old) => old.color != color;
+}
+
+// ── Page 3: Get your verdict ──────────────────────────────────────────────────
 class _Page3 extends StatelessWidget {
   const _Page3();
 
   @override
   Widget build(BuildContext context) {
+    final cl = Cl.of(context);
     return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 80, 24, 160),
+      padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            width: 100,
-            height: 100,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(color: AppColors.purple, width: 2),
-              color: AppColors.surface,
+          EyebrowText.muted('Step 2'),
+          const SizedBox(height: 12),
+          Text(
+            'Get your verdict.',
+            style: GoogleFonts.dmSans(
+              fontSize: 32, fontWeight: FontWeight.w700,
+              color: cl.ink, letterSpacing: -0.02 * 32, height: 1.2,
             ),
-            child: const Icon(Icons.share, color: AppColors.purple, size: 48),
           ),
-          const SizedBox(height: 32),
-          const Text('Share your animal,\nflex your score',
-              style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: AppColors.textPrimary, height: 1.3),
-              textAlign: TextAlign.center),
+          const SizedBox(height: 10),
+          Text(
+            'Score, rarity tier, spirit animal — and what changed since last time.',
+            style: GoogleFonts.dmSans(fontSize: 15, color: cl.inkMuted, height: 1.6),
+          ),
           const SizedBox(height: 24),
+
+          // Mock result card
           Container(
-            padding: const EdgeInsets.all(16),
+            width: double.infinity,
+            padding: const EdgeInsets.all(18),
             decoration: BoxDecoration(
-              color: AppColors.surface,
-              borderRadius: BorderRadius.circular(AppRadius.card),
-              border: Border.all(color: AppColors.border, width: 0.5),
+              color: cl.surface,
+              borderRadius: BorderRadius.circular(AppRadius.large),
+              border: Border.all(
+                color: cl.legendary.withValues(alpha: 0.4), width: 0.5),
+              boxShadow: cl.cardShadow,
             ),
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('🐆 Snow Leopard', style: TextStyle(fontSize: 22)),
-                const SizedBox(height: 4),
-                const Text('Legendary · top 2%',
-                    style: TextStyle(color: AppColors.legendary, fontSize: 12, fontWeight: FontWeight.w600)),
-                const SizedBox(height: 8),
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Text('8.4', style: TextStyle(color: AppColors.purpleLight, fontSize: 32, fontWeight: FontWeight.bold)),
-                    const SizedBox(width: 16),
-                    const Text('/10', style: TextStyle(color: AppColors.textMuted, fontSize: 18)),
-                    const SizedBox(width: 16),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text('Top 7%', style: TextStyle(color: AppColors.tealLight, fontSize: 14, fontWeight: FontWeight.bold)),
-                        const Text('this week', style: TextStyle(color: AppColors.textMuted, fontSize: 10)),
-                      ],
+                    Text('🐆', style: const TextStyle(fontSize: 20)),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Snow Leopard',
+                      style: GoogleFonts.dmSans(
+                        fontSize: 14, fontWeight: FontWeight.w600, color: cl.legendary,
+                      ),
+                    ),
+                    const Spacer(),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: cl.legendary.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(AppRadius.pill),
+                        border: Border.all(color: cl.legendary.withValues(alpha: 0.5), width: 0.5),
+                      ),
+                      child: Text(
+                        'LEGENDARY',
+                        style: GoogleFonts.dmSans(
+                          fontSize: 9, letterSpacing: 1.4, fontWeight: FontWeight.w600,
+                          color: cl.legendary,
+                        ),
+                      ),
                     ),
                   ],
                 ),
+                const SizedBox(height: 14),
+                Text(
+                  '8.4',
+                  style: GoogleFonts.dmSans(
+                    fontSize: 56, fontWeight: FontWeight.w800,
+                    color: cl.accent, letterSpacing: -0.04 * 56, height: 1,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '↑ 0.3 from last scan · top 7% this week',
+                  style: GoogleFonts.dmSans(fontSize: 12, color: cl.teal),
+                ),
               ],
             ),
+          ),
+          const SizedBox(height: 20),
+          Container(height: 0.5, color: cl.rule),
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              Container(
+                width: 6, height: 6,
+                decoration: BoxDecoration(shape: BoxShape.circle, color: cl.accent),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                'Track your score over time. Build your bestiary.',
+                style: GoogleFonts.dmSans(fontSize: 12, color: cl.inkMuted),
+              ),
+            ],
           ),
         ],
       ),

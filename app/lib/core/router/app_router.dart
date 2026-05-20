@@ -1,8 +1,11 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import '../theme/app_theme.dart';
 import '../../features/onboarding/screens/onboarding_screen.dart';
 import '../../features/auth/screens/auth_screen.dart';
 import '../../features/home/screens/home_screen.dart';
@@ -11,11 +14,38 @@ import '../../features/scan/screens/loading_screen.dart';
 import '../../features/results/screens/summary_screen.dart';
 import '../../features/results/screens/animal_reveal_screen.dart';
 import '../../features/results/screens/score_card_screen.dart';
+import '../../features/results/providers/results_provider.dart';
 import '../../features/history/screens/history_screen.dart';
 import '../../features/credits/screens/paywall_screen.dart';
 import '../../features/settings/screens/settings_screen.dart';
 import '../../features/pokedex/screens/pokedex_screen.dart';
 import '../../models/scan_result.dart';
+import '../../widgets/noise_bg.dart';
+
+// Smooth slide-up + fade transition — used for all forward navigation
+Page<void> _page(LocalKey key, Widget child) => CustomTransitionPage<void>(
+  key: key,
+  child: child,
+  transitionDuration: const Duration(milliseconds: 320),
+  reverseTransitionDuration: const Duration(milliseconds: 260),
+  transitionsBuilder: (ctx, animation, secondaryAnimation, child) {
+    final forward = CurvedAnimation(parent: animation, curve: Curves.easeOutCubic);
+    final backward = CurvedAnimation(parent: secondaryAnimation, curve: Curves.easeInCubic);
+    return FadeTransition(
+      opacity: CurvedAnimation(parent: animation, curve: const Interval(0.0, 0.6)),
+      child: SlideTransition(
+        position: Tween(begin: const Offset(0, 0.04), end: Offset.zero).animate(forward),
+        child: FadeTransition(
+          opacity: Tween(begin: 1.0, end: 0.92).animate(backward),
+          child: SlideTransition(
+            position: Tween(begin: Offset.zero, end: const Offset(0, -0.02)).animate(backward),
+            child: child,
+          ),
+        ),
+      ),
+    );
+  },
+);
 
 class _SplashScreen extends StatefulWidget {
   const _SplashScreen();
@@ -36,9 +66,7 @@ class _SplashScreenState extends State<_SplashScreen> {
     final prefs = await SharedPreferences.getInstance();
     final onboardingDone = prefs.getBool('onboardingComplete') ?? false;
     final user = FirebaseAuth.instance.currentUser;
-
     if (!mounted) return;
-
     if (!onboardingDone) {
       context.go('/onboarding');
     } else if (user == null) {
@@ -50,12 +78,37 @@ class _SplashScreenState extends State<_SplashScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
-      backgroundColor: Color(0xFF07070F),
-      body: Center(
-        child: CircularProgressIndicator(color: Color(0xFF7C3AED)),
+    return Scaffold(
+      backgroundColor: AppColors.canvas,
+      body: NoiseBg(
+        child: Center(
+          child: Text(
+            'mirror.',
+            style: GoogleFonts.dmSans(
+              fontSize: 32, fontWeight: FontWeight.w300,
+              color: AppColors.ink, letterSpacing: 4,
+            ),
+          ),
+        ),
       ),
     );
+  }
+}
+
+class _SummaryRouteWrapper extends ConsumerWidget {
+  final Object? extra;
+  const _SummaryRouteWrapper({this.extra});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final result = extra is ScanResult
+        ? extra as ScanResult
+        : ref.watch(currentScanProvider);
+    if (result == null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => context.go('/home'));
+      return const Scaffold(backgroundColor: AppColors.canvas);
+    }
+    return SummaryScreen(result: result);
   }
 }
 
@@ -64,68 +117,65 @@ final appRouter = GoRouter(
   routes: [
     GoRoute(
       path: '/',
-      builder: (_, __) => const _SplashScreen(),
+      pageBuilder: (ctx, state) => _page(state.pageKey, const _SplashScreen()),
     ),
     GoRoute(
       path: '/onboarding',
-      builder: (_, __) => const OnboardingScreen(),
+      pageBuilder: (ctx, state) => _page(state.pageKey, const OnboardingScreen()),
     ),
     GoRoute(
       path: '/auth',
-      builder: (_, __) => const AuthScreen(),
+      pageBuilder: (ctx, state) => _page(state.pageKey, const AuthScreen()),
     ),
     GoRoute(
       path: '/home',
-      builder: (_, __) => const HomeScreen(),
+      pageBuilder: (ctx, state) => _page(state.pageKey, const HomeScreen()),
     ),
     GoRoute(
       path: '/scan',
-      builder: (_, __) => const ScanScreen(),
+      pageBuilder: (ctx, state) => _page(state.pageKey, const ScanScreen()),
     ),
     GoRoute(
       path: '/loading',
-      builder: (context, state) {
+      pageBuilder: (ctx, state) {
         final extra = state.extra as Map<String, dynamic>;
-        return LoadingScreen(
+        return _page(state.pageKey, LoadingScreen(
           imageFile: extra['imageFile'] as File,
           mood: extra['mood'] as String,
           mode: extra['mode'] as String? ?? 'honest',
-        );
+        ));
       },
     ),
     GoRoute(
       path: '/summary',
-      builder: (context, state) => SummaryScreen(
-        result: state.extra as ScanResult,
-      ),
+      pageBuilder: (ctx, state) =>
+          _page(state.pageKey, _SummaryRouteWrapper(extra: state.extra)),
     ),
     GoRoute(
       path: '/animal-reveal',
-      builder: (context, state) => AnimalRevealScreen(
-        result: state.extra as ScanResult,
-      ),
+      pageBuilder: (ctx, state) => _page(state.pageKey,
+          AnimalRevealScreen(result: state.extra as ScanResult)),
     ),
     GoRoute(
       path: '/score-card',
-      builder: (context, state) => ScoreCardScreen(
-        result: state.extra as ScanResult,
-      ),
+      pageBuilder: (ctx, state) => _page(state.pageKey,
+          ScoreCardScreen(result: state.extra as ScanResult)),
     ),
     GoRoute(
       path: '/history',
-      builder: (_, __) => const HistoryScreen(),
+      pageBuilder: (ctx, state) => _page(state.pageKey, const HistoryScreen()),
     ),
     GoRoute(
       path: '/paywall',
-      builder: (_, __) => const PaywallScreen(),
+      pageBuilder: (ctx, state) => _page(state.pageKey, const PaywallScreen()),
     ),
     GoRoute(
       path: '/settings',
-      builder: (_, __) => const SettingsScreen(),
+      pageBuilder: (ctx, state) => _page(state.pageKey, const SettingsScreen()),
     ),
     GoRoute(
       path: '/pokedex',
-      builder: (_, __) => const PokedexScreen(),
+      pageBuilder: (ctx, state) => _page(state.pageKey, const PokedexScreen()),
     ),
   ],
 );

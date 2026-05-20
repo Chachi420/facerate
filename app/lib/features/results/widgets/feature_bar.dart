@@ -9,6 +9,7 @@ class FeatureBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cl = Cl.of(context);
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Column(
@@ -18,9 +19,9 @@ class FeatureBar extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(name.toUpperCase(),
-                  style: const TextStyle(color: AppColors.textSecondary, fontSize: 9, letterSpacing: 0.8)),
+                  style: TextStyle(color: cl.inkMuted, fontSize: 9, letterSpacing: 0.8)),
               Text(score.toStringAsFixed(1),
-                  style: const TextStyle(color: AppColors.textPrimary, fontSize: 13, fontWeight: FontWeight.w600)),
+                  style: TextStyle(color: cl.ink, fontSize: 13, fontWeight: FontWeight.w600)),
             ],
           ),
           const SizedBox(height: 4),
@@ -28,8 +29,8 @@ class FeatureBar extends StatelessWidget {
             borderRadius: BorderRadius.circular(2),
             child: LinearProgressIndicator(
               value: score / 10.0,
-              backgroundColor: AppColors.surface2,
-              valueColor: const AlwaysStoppedAnimation(AppColors.purple),
+              backgroundColor: cl.surfaceH,
+              valueColor: AlwaysStoppedAnimation(cl.accent),
               minHeight: 4,
             ),
           ),

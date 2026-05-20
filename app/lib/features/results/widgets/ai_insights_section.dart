@@ -15,6 +15,7 @@ class AiInsightsSection extends StatelessWidget {
       ('⚡', 'Vibe', result.vibe.length > 60 ? '${result.vibe.substring(0, 60)}...' : result.vibe),
     ];
 
+    final cl = Cl.of(context);
     return Wrap(
       spacing: 8,
       runSpacing: 8,
@@ -23,9 +24,9 @@ class AiInsightsSection extends StatelessWidget {
         return Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           decoration: BoxDecoration(
-            color: AppColors.surface2,
+            color: cl.surfaceH,
             borderRadius: BorderRadius.circular(AppRadius.small),
-            border: Border.all(color: AppColors.border, width: 0.5),
+            border: Border.all(color: cl.rule, width: 0.5),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -36,8 +37,8 @@ class AiInsightsSection extends StatelessWidget {
                   Text(emoji, style: const TextStyle(fontSize: 14)),
                   const SizedBox(width: 6),
                   Text(label,
-                      style: const TextStyle(
-                          color: AppColors.amber,
+                      style: TextStyle(
+                          color: cl.legendary,
                           fontSize: 11,
                           fontWeight: FontWeight.w600)),
                 ],
@@ -46,7 +47,7 @@ class AiInsightsSection extends StatelessWidget {
               ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 200),
                 child: Text(value,
-                    style: const TextStyle(color: AppColors.textPrimary, fontSize: 12),
+                    style: TextStyle(color: cl.ink, fontSize: 12),
                     maxLines: 3,
                     overflow: TextOverflow.ellipsis),
               ),
