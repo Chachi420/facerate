@@ -8,6 +8,7 @@ from prompts.face_analysis_prompt import FACE_ANALYSIS_PROMPT
 
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 GROQ_URL = "https://api.groq.com/openai/v1/chat/completions"
+GROQ_MODEL = "meta-llama/llama-4-scout-17b-16e-instruct"
 
 # Characters the AI commonly uses that render as mojibake on some devices
 _REPLACEMENTS = {
@@ -30,8 +31,8 @@ def _sanitize(value: object) -> object:
     if isinstance(value, str):
         for char, replacement in _REPLACEMENTS.items():
             value = value.replace(char, replacement)
-        # Drop any remaining non-BMP code points (surrogate pairs etc.) that
-        # would cause encoding errors in some JSON serialisers.
+        # Drop non-BMP code points (surrogate pairs etc.) that break some
+        # JSON serialisers and mobile font renderers.
         value = "".join(c for c in value if unicodedata.category(c) != "Cs")
         return value
     if isinstance(value, dict):
@@ -42,7 +43,6 @@ def _sanitize(value: object) -> object:
 
 
 def _extract_json(content: str) -> dict:
-    # Strip markdown code blocks
     content = content.strip()
     if content.startswith("```"):
         lines = content.split("\n")
@@ -51,13 +51,11 @@ def _extract_json(content: str) -> dict:
             lines = lines[:-1]
         content = "\n".join(lines).strip()
 
-    # Try direct parse
     try:
         return json.loads(content)
     except json.JSONDecodeError:
         pass
 
-    # Extract first {...} block from response
     match = re.search(r'\{.*\}', content, re.DOTALL)
     if match:
         return json.loads(match.group())
@@ -89,12 +87,9 @@ async def analyze_face(image_bytes: bytes, mode: str = "honest") -> dict:
                 "Content-Type": "application/json",
             },
             json={
-                "model": "meta-llama/llama-4-scout-17b-16e-instruct",
+                "model": GROQ_MODEL,
                 "messages": [
-                    {
-                        "role": "system",
-                        "content": system_msg,
-                    },
+                    {"role": "system", "content": system_msg},
                     {
                         "role": "user",
                         "content": [
@@ -104,10 +99,7 @@ async def analyze_face(image_bytes: bytes, mode: str = "honest") -> dict:
                                     "url": f"data:image/jpeg;base64,{image_b64}"
                                 },
                             },
-                            {
-                                "type": "text",
-                                "text": FACE_ANALYSIS_PROMPT,
-                            },
+                            {"type": "text", "text": FACE_ANALYSIS_PROMPT},
                         ],
                     },
                 ],

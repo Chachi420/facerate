@@ -266,7 +266,7 @@ class SettingsScreen extends ConsumerWidget {
           ]),
           _LegalSection('Data Sharing', [
             'We do not sell your personal data — ever.',
-            'Scan images are processed by our AI provider (Moonshot AI / Kimi) and are not retained after the response.',
+            'Scan images are processed by our AI provider (Groq / LLaMA 4 Vision) and are not retained after the response.',
             'Account and results data is stored on Firebase (Google Cloud), governed by Google\'s data processing terms.',
           ]),
           _LegalSection('Data Retention & Deletion', [

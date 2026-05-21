@@ -13,7 +13,6 @@ import '../widgets/feature_bar.dart';
 import '../widgets/glowup_section.dart';
 import '../widgets/celeb_section.dart';
 import '../widgets/ai_insights_section.dart';
-import '../../auth/providers/auth_provider.dart';
 import '../../history/providers/history_provider.dart';
 import '../../../widgets/masthead.dart';
 import '../../../widgets/eyebrow_text.dart';
@@ -318,12 +317,9 @@ class SummaryScreen extends ConsumerWidget {
                             child: GestureDetector(
                               onTap: () {
                                 HapticFeedback.mediumImpact();
-                                final isGuest = ref.read(authStateProvider).value == null;
-                                if (!result.animal.isFree && isGuest) {
-                                  context.push('/paywall');
-                                } else {
-                                  context.push('/animal-reveal', extra: result);
-                                }
+                                // Always navigate to /animal-reveal.
+                                // That screen owns the locked-guest UI (watch ad / sign up).
+                                context.push('/animal-reveal', extra: result);
                               },
                               child: Container(
                                 padding: const EdgeInsets.symmetric(vertical: 14),

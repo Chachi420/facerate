@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 from typing import Optional
 from fastapi import APIRouter, File, UploadFile, Form, HTTPException, Header
 from models.scan_models import ScanResponse
-from services import kimi_service, firebase_service
+from services import vision_service, firebase_service
 from services.firebase_service import deduct_credits, award_credits, get_user, verify_id_token
 
 router = APIRouter()
@@ -89,10 +89,15 @@ async def scan_face(
         except HTTPException:
             raise
         except Exception:
-            pass  # If we can't check credits, let the scan proceed
+            # Firestore is unavailable — fail closed for authenticated users
+            # rather than granting a free scan.
+            raise HTTPException(
+                status_code=503,
+                detail="Credit verification is temporarily unavailable. Please try again in a moment.",
+            )
 
     try:
-        analysis = await kimi_service.analyze_face(image_bytes, mode)
+        analysis = await vision_service.analyze_face(image_bytes, mode)
     except Exception as e:
         # Refund the credit if AI analysis fails
         if credit_deducted:
