@@ -26,12 +26,12 @@ class ApiService {
     receiveTimeout: const Duration(seconds: 60),
   ));
 
-  Future<ScanResult> analyzeFace(File imageFile, String userId, String mood, [String mode = 'honest']) async {
+  Future<ScanResult> analyzeFace(File imageFile, String userId, String mood, [String mode = 'honest', String? idToken]) async {
     final compressed = await _compressImage(imageFile);
-    return _retryRequest(() => _doAnalyzeFace(compressed, userId, mood, mode));
+    return _retryRequest(() => _doAnalyzeFace(compressed, userId, mood, mode, idToken));
   }
 
-  Future<ScanResult> _doAnalyzeFace(File imageFile, String userId, String mood, String mode) async {
+  Future<ScanResult> _doAnalyzeFace(File imageFile, String userId, String mood, String mode, String? idToken) async {
     final formData = FormData.fromMap({
       'image': await MultipartFile.fromFile(imageFile.path, filename: 'face.jpg'),
       'user_id': userId,
@@ -39,7 +39,10 @@ class ApiService {
       'mode': mode,
     });
 
-    final response = await _dio.post('/api/scan', data: formData);
+    final options = idToken != null
+        ? Options(headers: {'Authorization': 'Bearer $idToken'})
+        : null;
+    final response = await _dio.post('/api/scan', data: formData, options: options);
 
     if (response.statusCode == 200) {
       return ScanResult.fromJson(response.data as Map<String, dynamic>);

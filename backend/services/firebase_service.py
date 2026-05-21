@@ -2,7 +2,7 @@ import os
 import json
 from datetime import datetime, timezone
 import firebase_admin
-from firebase_admin import credentials, firestore
+from firebase_admin import credentials, firestore, auth as firebase_auth
 
 _db = None
 
@@ -30,6 +30,12 @@ def init_firebase():
     _db = firestore.client()
 
 
+def verify_id_token(token: str) -> str:
+    """Verify a Firebase ID token and return the uid."""
+    decoded = firebase_auth.verify_id_token(token)
+    return decoded["uid"]
+
+
 async def save_scan_result(user_id: str, scan_id: str, scan_data: dict) -> None:
     db = get_db()
     scan_ref = db.collection("users").document(user_id).collection("scans").document(scan_id)
@@ -45,7 +51,7 @@ async def update_user_stats(user_id: str, scan_date: datetime) -> None:
         user_ref.set(
             {
                 "uid": user_id,
-                "credits": 0,
+                "credits": 5,
                 "isPro": False,
                 "totalScans": 1,
                 "streak": 1,

@@ -3,10 +3,42 @@ import base64
 import json
 import re
 import os
+import unicodedata
 from prompts.face_analysis_prompt import FACE_ANALYSIS_PROMPT
 
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 GROQ_URL = "https://api.groq.com/openai/v1/chat/completions"
+
+# Characters the AI commonly uses that render as mojibake on some devices
+_REPLACEMENTS = {
+    "→": "->",   # →
+    "←": "<-",   # ←
+    "•": "-",    # •
+    "·": "-",    # ·
+    "–": "-",    # –
+    "—": "-",    # —
+    "‘": "'",    # '
+    "’": "'",    # '
+    "“": '"',    # "
+    "”": '"',    # "
+    "…": "...",  # …
+}
+
+
+def _sanitize(value: object) -> object:
+    """Recursively replace problematic Unicode in strings returned by the AI."""
+    if isinstance(value, str):
+        for char, replacement in _REPLACEMENTS.items():
+            value = value.replace(char, replacement)
+        # Drop any remaining non-BMP code points (surrogate pairs etc.) that
+        # would cause encoding errors in some JSON serialisers.
+        value = "".join(c for c in value if unicodedata.category(c) != "Cs")
+        return value
+    if isinstance(value, dict):
+        return {k: _sanitize(v) for k, v in value.items()}
+    if isinstance(value, list):
+        return [_sanitize(item) for item in value]
+    return value
 
 
 def _extract_json(content: str) -> dict:
@@ -88,4 +120,4 @@ async def analyze_face(image_bytes: bytes, mode: str = "honest") -> dict:
         response.raise_for_status()
         result = response.json()
         content = result["choices"][0]["message"]["content"].strip()
-        return _extract_json(content)
+        return _sanitize(_extract_json(content))

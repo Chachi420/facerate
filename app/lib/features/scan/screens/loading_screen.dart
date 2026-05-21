@@ -146,11 +146,12 @@ class _LoadingScreenState extends ConsumerState<LoadingScreen>
   Future<void> _analyze() async {
     final authState = ref.read(authStateProvider).value;
     final userId = authState?.uid ?? 'guest';
+    final idToken = userId != 'guest' ? await authState!.getIdToken() : null;
     final apiService = ApiService();
 
     try {
       final result = await apiService.analyzeFace(
-          widget.imageFile, userId, widget.mood, widget.mode);
+          widget.imageFile, userId, widget.mood, widget.mode, idToken);
       ref.read(currentScanProvider.notifier).state = result;
 
       // Persist scan to history if the user has enabled it.

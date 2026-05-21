@@ -13,6 +13,7 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/image_utils.dart';
 import '../providers/scan_provider.dart';
 import '../widgets/face_ar_overlay.dart';
+import '../../auth/providers/auth_provider.dart';
 
 enum _FlashMode { off, warm, cool }
 
@@ -196,6 +197,17 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
     if (mounted) setState(() { _countdown = 0; _timerSeconds = 0; });
   }
 
+  // ── Credit gate ───────────────────────────────────────────────────
+
+  bool _outOfCredits() {
+    final authState = ref.read(authStateProvider).value;
+    if (authState == null) return false; // guest scans free
+    final profile = ref.read(currentUserProfileStreamProvider).value;
+    if (profile == null) return false; // can't check, let backend handle it
+    if (profile.isPro) return false;   // pro is unlimited
+    return profile.credits <= 0;
+  }
+
   // ── Capture ───────────────────────────────────────────────────────
 
   void _onShutterTap() {
@@ -223,6 +235,11 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
   Future<void> _doCapture() async {
     final ctrl = _controller;
     if (ctrl == null || !ctrl.value.isInitialized) return;
+    if (_outOfCredits()) {
+      HapticFeedback.lightImpact();
+      if (mounted) context.push('/paywall');
+      return;
+    }
     setState(() => _capturing = true);
     try {
       try { await ctrl.stopImageStream(); } catch (_) {}
@@ -242,6 +259,11 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
 
   Future<void> _pickGallery() async {
     if (_capturing) return;
+    if (_outOfCredits()) {
+      HapticFeedback.lightImpact();
+      if (mounted) context.push('/paywall');
+      return;
+    }
     HapticFeedback.lightImpact();
     setState(() => _capturing = true);
     try {
@@ -408,7 +430,26 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
                   current: mode,
                   onChanged: (v) { HapticFeedback.selectionClick(); ref.read(selectedModeProvider.notifier).state = v; },
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 16),
+
+                // Privacy note
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.lock_outline_rounded,
+                        size: 10, color: Colors.white.withValues(alpha: 0.35)),
+                    const SizedBox(width: 5),
+                    Text(
+                      'Photo is analyzed instantly — never stored',
+                      style: GoogleFonts.dmSans(
+                        fontSize: 11,
+                        color: Colors.white.withValues(alpha: 0.35),
+                      ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 16),
 
                 // Shutter row
                 Padding(

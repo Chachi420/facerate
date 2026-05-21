@@ -84,7 +84,8 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
     final existing = await firestore.getUser(uid);
     if (existing == null) {
       await firestore.createUser(UserProfile(
-        uid: uid, email: email, displayName: displayName, createdAt: DateTime.now()));
+        uid: uid, email: email, displayName: displayName,
+        credits: 5, createdAt: DateTime.now()));
     }
   }
 

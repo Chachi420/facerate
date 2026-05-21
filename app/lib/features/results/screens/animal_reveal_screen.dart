@@ -29,9 +29,12 @@ class _AnimalRevealScreenState extends ConsumerState<AnimalRevealScreen> {
   final _cardKey = GlobalKey();
 
   bool get _isLocked {
-    final isFree = widget.result.animal.isFree;
-    final credits = ref.read(currentUserProfileStreamProvider).value?.credits ?? 0;
-    return !isFree && credits < 5 && !_revealed;
+    if (_revealed) return false;
+    if (widget.result.animal.isFree) return false;
+    // Authenticated users paid 1 credit for the scan — reveal is included.
+    // Only lock for unauthenticated guests who scanned for free.
+    final authState = ref.read(authStateProvider).value;
+    return authState == null;
   }
 
   Future<void> _watchAd() async {
@@ -200,9 +203,9 @@ class _AnimalRevealScreenState extends ConsumerState<AnimalRevealScreen> {
                       ),
                       const SizedBox(height: 20),
 
-                      // Reveal for 5 credits — rounded
+                      // Watch ad to reveal — primary CTA for guests
                       GestureDetector(
-                        onTap: () => context.push('/paywall'),
+                        onTap: _watchAd,
                         child: Container(
                           width: double.infinity,
                           padding: const EdgeInsets.symmetric(vertical: 15),
@@ -212,7 +215,7 @@ class _AnimalRevealScreenState extends ConsumerState<AnimalRevealScreen> {
                           ),
                           alignment: Alignment.center,
                           child: Text(
-                            'Reveal for 5 credits',
+                            'Watch ad to reveal',
                             style: GoogleFonts.dmSans(
                               fontSize: 15, fontWeight: FontWeight.w600, color: cl.canvas,
                             ),
@@ -221,9 +224,9 @@ class _AnimalRevealScreenState extends ConsumerState<AnimalRevealScreen> {
                       ),
                       const SizedBox(height: 10),
 
-                      // Watch ad — rounded outline
+                      // Sign in / get credits — secondary
                       GestureDetector(
-                        onTap: _watchAd,
+                        onTap: () => context.push('/paywall'),
                         child: Container(
                           width: double.infinity,
                           padding: const EdgeInsets.symmetric(vertical: 14),
@@ -233,7 +236,7 @@ class _AnimalRevealScreenState extends ConsumerState<AnimalRevealScreen> {
                           ),
                           alignment: Alignment.center,
                           child: Text(
-                            'Watch ad to reveal',
+                            'Sign up to unlock forever',
                             style: GoogleFonts.dmSans(fontSize: 13, color: cl.inkMuted),
                           ),
                         ),

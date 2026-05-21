@@ -2,10 +2,11 @@ import time
 import uuid
 from collections import defaultdict
 from datetime import datetime, timezone
-from fastapi import APIRouter, File, UploadFile, Form, HTTPException
+from typing import Optional
+from fastapi import APIRouter, File, UploadFile, Form, HTTPException, Header
 from models.scan_models import ScanResponse
 from services import kimi_service, firebase_service
-from services.firebase_service import deduct_credits, award_credits, get_user
+from services.firebase_service import deduct_credits, award_credits, get_user, verify_id_token
 
 router = APIRouter()
 
@@ -39,11 +40,24 @@ def _compute_what_changed(current_score: float, prev_score: float | None, days_s
 @router.post("/api/scan", response_model=ScanResponse)
 async def scan_face(
     image: UploadFile = File(...),
-    user_id: str = Form(...),
+    user_id: str = Form(default="guest"),
     mood: str = Form(default="good"),
     mode: str = Form(default="honest"),
     prev_scan_id: str = Form(default=None),
+    authorization: Optional[str] = Header(default=None),
 ):
+    # Resolve the caller's uid from the bearer token or fall back to guest.
+    # The form-field user_id is NOT trusted for non-guest requests.
+    if authorization and authorization.startswith("Bearer "):
+        token = authorization[7:]
+        try:
+            user_id = verify_id_token(token)
+        except Exception:
+            raise HTTPException(status_code=401, detail="Invalid or expired authentication token.")
+    elif user_id != "guest":
+        # Non-guest request with no auth token — reject.
+        raise HTTPException(status_code=401, detail="Authentication required.")
+
     now = time.time()
     _rate_limit_store[user_id] = [t for t in _rate_limit_store[user_id] if now - t < RATE_WINDOW]
     if len(_rate_limit_store[user_id]) >= RATE_LIMIT:
