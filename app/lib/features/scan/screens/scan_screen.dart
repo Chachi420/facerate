@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:math' show min;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:screen_brightness/screen_brightness.dart';
@@ -38,7 +39,8 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
   Size _imageSize = Size.zero;
   InputImageRotation _imageRotation = InputImageRotation.rotation0deg;
 
-  bool get _faceDetected => _faces.isNotEmpty;
+  _ScanQuality _quality = const _ScanQuality();
+
   bool _capturing = false;
   _FlashMode _flashMode = _FlashMode.off;
 
@@ -51,6 +53,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
     super.initState();
     _faceDetector = FaceDetector(options: FaceDetectorOptions(
       enableContours: true,
+      enableClassification: true,
       performanceMode: FaceDetectorMode.fast,
     ));
     WidgetsBinding.instance.addObserver(this);
@@ -129,6 +132,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
         _faces = faces;
         _imageSize = Size(image.width.toDouble(), image.height.toDouble());
         _imageRotation = rotation;
+        _quality = _computeQuality(faces, _imageSize);
       });
     } catch (_) {}
     _processing = false;
@@ -140,6 +144,42 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
     270 => InputImageRotation.rotation270deg,
     _   => InputImageRotation.rotation0deg,
   };
+
+  _ScanQuality _computeQuality(List<Face> faces, Size imgSize) {
+    if (faces.isEmpty) return const _ScanQuality();
+    if (faces.length > 1) return _ScanQuality(faceCount: faces.length);
+
+    final face = faces.first;
+    final box  = face.boundingBox;
+
+    // Centered: face centre within 28% of image centre on each axis.
+    final cx = (box.center.dx - imgSize.width  / 2).abs() / imgSize.width;
+    final cy = (box.center.dy - imgSize.height / 2).abs() / imgSize.height;
+    final centered = cx < 0.28 && cy < 0.28;
+
+    // Good size: face width >= 20% of the shorter image dimension.
+    final minDim  = min(imgSize.width, imgSize.height);
+    final goodSize = box.width / minDim >= 0.20;
+
+    // Not tilted: roll (Z) < 20° and yaw (Y) < 25°.
+    final roll = (face.headEulerAngleZ ?? 0).abs();
+    final yaw  = (face.headEulerAngleY ?? 0).abs();
+    final notTilted = roll < 20 && yaw < 25;
+
+    // Eyes visible: use open-probability if available, assume ok if null.
+    final lEye = face.leftEyeOpenProbability;
+    final rEye = face.rightEyeOpenProbability;
+    final eyesVisible =
+        (lEye == null || lEye > 0.4) && (rEye == null || rEye > 0.4);
+
+    return _ScanQuality(
+      faceCount: 1,
+      centered:    centered,
+      goodSize:    goodSize,
+      notTilted:   notTilted,
+      eyesVisible: eyesVisible,
+    );
+  }
 
   Future<void> _flipCamera() async {
     if (_cameras.length < 2) return;
@@ -384,38 +424,10 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
                   ),
                 ),
 
-                // Face-detected status
-                AnimatedOpacity(
-                  duration: const Duration(milliseconds: 400),
-                  opacity: _faceDetected ? 1.0 : 0.0,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-                    decoration: BoxDecoration(
-                      color: AppColors.signalGreen.withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(AppRadius.pill),
-                      border: Border.all(color: AppColors.signalGreen.withValues(alpha: 0.5), width: 0.5),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Container(
-                          width: 5, height: 5,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: AppColors.signalGreen,
-                          ),
-                        ),
-                        const SizedBox(width: 6),
-                        Text(
-                          'Face detected',
-                          style: GoogleFonts.dmSans(
-                            fontSize: 11, fontWeight: FontWeight.w500,
-                            color: AppColors.signalGreen,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+                // Quality strip
+                AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 300),
+                  child: _buildQualityStrip(),
                 ),
 
                 const Spacer(),
@@ -469,6 +481,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
                       _ShutterButton(
                         capturing: _capturing,
                         countdown: _countdown,
+                        qualityPassed: _quality.allPassed,
                         onTap: _onShutterTap,
                       ),
 
@@ -486,6 +499,39 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildQualityStrip() {
+    if (_faces.isEmpty) return const SizedBox(height: 28);
+
+    if (_quality.allPassed) {
+      return _StatusChip(
+        dot: AppColors.signalGreen,
+        label: 'Ready',
+        bg: AppColors.signalGreen.withValues(alpha: 0.15),
+        border: AppColors.signalGreen.withValues(alpha: 0.5),
+        textColor: AppColors.signalGreen,
+      );
+    }
+
+    final hints = _quality.failHints;
+    if (hints.isEmpty) return const SizedBox(height: 28);
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: hints
+          .map((h) => Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 3),
+                child: _StatusChip(
+                  dot: AppColors.legendary,
+                  label: h,
+                  bg: AppColors.legendary.withValues(alpha: 0.12),
+                  border: AppColors.legendary.withValues(alpha: 0.4),
+                  textColor: AppColors.legendary,
+                ),
+              ))
+          .toList(),
     );
   }
 
@@ -634,13 +680,18 @@ class _TimerChip extends StatelessWidget {
 class _ShutterButton extends StatelessWidget {
   final bool capturing;
   final int countdown;
+  final bool qualityPassed;
   final VoidCallback onTap;
-  const _ShutterButton({required this.capturing, required this.countdown, required this.onTap});
+  const _ShutterButton({required this.capturing, required this.countdown, required this.qualityPassed, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
     final isCountingDown = countdown > 0;
-    final ringColor = isCountingDown ? AppColors.accent : Colors.white;
+    final ringColor = isCountingDown
+        ? AppColors.accent
+        : qualityPassed
+            ? AppColors.signalGreen
+            : Colors.white;
 
     return GestureDetector(
       onTap: onTap,
@@ -737,6 +788,82 @@ class _MoodRow extends StatelessWidget {
           ),
         );
       }).toList(),
+    );
+  }
+}
+
+// ── Selfie quality model ──────────────────────────────────────────────
+class _ScanQuality {
+  final int faceCount;
+  final bool centered;
+  final bool goodSize;
+  final bool notTilted;
+  final bool eyesVisible;
+
+  const _ScanQuality({
+    this.faceCount  = 0,
+    this.centered   = false,
+    this.goodSize   = false,
+    this.notTilted  = false,
+    this.eyesVisible = false,
+  });
+
+  bool get allPassed =>
+      faceCount == 1 && centered && goodSize && notTilted && eyesVisible;
+
+  List<String> get failHints {
+    if (faceCount == 0) return [];
+    if (faceCount > 1) return ['One face only'];
+    final h = <String>[];
+    if (!centered)    h.add('Center face');
+    if (!goodSize)    h.add('Move closer');
+    if (!notTilted)   h.add('Hold still');
+    if (!eyesVisible) h.add('Eyes forward');
+    return h;
+  }
+}
+
+// ── Inline status chip used by the quality strip ──────────────────────
+class _StatusChip extends StatelessWidget {
+  final Color dot;
+  final String label;
+  final Color bg;
+  final Color border;
+  final Color textColor;
+
+  const _StatusChip({
+    required this.dot,
+    required this.label,
+    required this.bg,
+    required this.border,
+    required this.textColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(AppRadius.pill),
+        border: Border.all(color: border, width: 0.5),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 5, height: 5,
+            decoration: BoxDecoration(shape: BoxShape.circle, color: dot),
+          ),
+          const SizedBox(width: 5),
+          Text(
+            label,
+            style: GoogleFonts.dmSans(
+              fontSize: 11, fontWeight: FontWeight.w500, color: textColor,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
