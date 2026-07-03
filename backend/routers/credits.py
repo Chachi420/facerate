@@ -1,13 +1,18 @@
 from fastapi import APIRouter, HTTPException, Header
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from services.firebase_service import deduct_credits
 import firebase_admin.auth as fb_auth
 
 router = APIRouter()
 
+# Upper bound guards against a client trying to grief its own balance; the
+# lower bound (gt=0) is the important one — a negative amount would otherwise
+# *add* credits (current - (-n) = current + n) and bypass all purchases.
+MAX_DEDUCT = 100
+
 
 class DeductRequest(BaseModel):
-    amount: int = 5
+    amount: int = Field(default=1, gt=0, le=MAX_DEDUCT)
 
 
 class DeductResponse(BaseModel):

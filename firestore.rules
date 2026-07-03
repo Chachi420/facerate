@@ -15,10 +15,17 @@ service cloud.firestore {
       allow read: if request.auth != null && request.auth.uid == userId;
 
       // Client creates the initial document at sign-up.
-      // uid field must match the authenticated caller.
+      // uid field must match the authenticated caller, and the client may not
+      // seed itself with inflated server-owned values (credits/isPro/scans).
+      // The signup bonus is 5 credits; anything above that must come from the
+      // backend Admin SDK (which bypasses these rules).
       allow create: if request.auth != null
         && request.auth.uid == userId
-        && request.resource.data.uid == userId;
+        && request.resource.data.uid == userId
+        && request.resource.data.get('credits', 0) <= 5
+        && request.resource.data.get('isPro', false) == false
+        && request.resource.data.get('totalScans', 0) == 0
+        && request.resource.data.get('unlockedRewards', []).size() == 0;
 
       // Client may only change preference fields.
       // Server-owned fields (credits, isPro, streak, …) are blocked.

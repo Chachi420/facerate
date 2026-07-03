@@ -113,6 +113,8 @@ async def get_user(user_id: str) -> dict | None:
 
 async def award_credits(user_id: str, amount: int) -> int:
     """Add credits to a user. Returns new total. Creates the user document if missing."""
+    if amount <= 0:
+        raise ValueError("award amount must be positive")
     db = get_db()
     user_ref = db.collection("users").document(user_id)
     result = {"total": None}
@@ -170,6 +172,9 @@ async def record_purchase(user_id: str, purchase_token: str, product_id: str) ->
 
 async def deduct_credits(user_id: str, amount: int) -> int:
     """Atomically deduct credits. Returns remaining balance. Raises ValueError if insufficient."""
+    if amount <= 0:
+        # A non-positive deduction would add credits — never allow it.
+        raise ValueError("deduct amount must be positive")
     db = get_db()
     user_ref = db.collection("users").document(user_id)
     result = {"remaining": None}

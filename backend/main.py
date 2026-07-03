@@ -1,7 +1,6 @@
-import os
 from contextlib import asynccontextmanager
 from dotenv import load_dotenv
-from fastapi import FastAPI, Request
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 load_dotenv()
@@ -21,18 +20,16 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="FaceRate API", version="1.0.0", lifespan=lifespan)
 
+# The API authenticates every mutating request with a Firebase Bearer token,
+# not cookies, so credentialed CORS is unnecessary. Keeping allow_credentials
+# False is also what lets the wildcard origin stay valid per the CORS spec.
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_credentials=True,
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-
-@app.middleware("http")
-async def rate_limit_middleware(request: Request, call_next):
-    return await call_next(request)
 
 
 app.include_router(scan.router)
