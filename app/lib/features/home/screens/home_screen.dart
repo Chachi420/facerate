@@ -141,7 +141,22 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         HapticFeedback.mediumImpact();
                         context.push('/scan');
                       }),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 10),
+
+                      // Next best action chip
+                      lastScanAsync.when(
+                        data: (scan) {
+                          final msg = _nextBestAction(scan, now.hour);
+                          if (msg == null) return const SizedBox.shrink();
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 6),
+                            child: _ActionChip(message: msg.$1, icon: msg.$2),
+                          );
+                        },
+                        loading: () => const SizedBox.shrink(),
+                        error: (_, __) => const SizedBox.shrink(),
+                      ),
+                      const SizedBox(height: 6),
 
                       lastScanAsync.when(
                         data: (scan) => scan != null
@@ -281,6 +296,64 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     if (hour < 12) return 'Good morning.';
     if (hour < 17) return 'Good afternoon.';
     return 'Good evening.';
+  }
+
+  // Returns (message, icon) or null if no chip should show.
+  (String, IconData)? _nextBestAction(ScanResult? last, int hour) {
+    if (last == null) {
+      return ('5 free credits to start — scan now.', Icons.bolt_rounded);
+    }
+    final daysSince = DateTime.now().difference(last.createdAt).inDays;
+    if (daysSince == 0) {
+      final delta = last.delta;
+      if (delta != null && delta > 0) {
+        return ('Score up ${delta.toStringAsFixed(1)} since last time. Keep going.', Icons.trending_up_rounded);
+      }
+      return ('You already scanned today. Come back tomorrow.', Icons.check_circle_outline_rounded);
+    }
+    if (daysSince == 1) {
+      return ('Scan today to keep your streak alive.', Icons.local_fire_department_rounded);
+    }
+    if (daysSince >= 3) {
+      return ("$daysSince days since your last scan — retake now.", Icons.refresh_rounded);
+    }
+    if (hour >= 8 && hour < 12) {
+      return ('Morning light is ideal for a clean scan.', Icons.wb_sunny_rounded);
+    }
+    return null;
+  }
+}
+
+// ── Next best action chip ──────────────────────────────────────────────
+class _ActionChip extends StatelessWidget {
+  final String message;
+  final IconData icon;
+  const _ActionChip({required this.message, required this.icon});
+
+  @override
+  Widget build(BuildContext context) {
+    final cl = Cl.of(context);
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: cl.surface,
+        borderRadius: BorderRadius.circular(AppRadius.card),
+        border: Border.all(color: cl.accent.withValues(alpha: 0.2), width: 0.5),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, size: 14, color: cl.accent),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              message,
+              style: GoogleFonts.dmSans(fontSize: 12, color: cl.inkMuted, height: 1.4),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 

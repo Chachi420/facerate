@@ -2,6 +2,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:in_app_purchase/in_app_purchase.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/constants/app_constants.dart';
 import '../providers/credits_provider.dart';
@@ -64,7 +65,7 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
     super.dispose();
   }
 
-  // (productId, label, displayPrice, perScanLabel, isPopular, isBestValue)
+  // (productId, label, fallbackPrice, perScanLabel, isPopular, isBestValue)
   static const _packs = [
     (AppConstants.creditsProduct10,  '10 credits', '\$0.99', '~10¢/scan', false, false),
     (AppConstants.creditsProduct30,  '30 credits', '\$2.49', '~8¢/scan',  true,  false),
@@ -106,11 +107,79 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
     }
   }
 
+  String _livePrice(String productId, String fallback, List<ProductDetails>? products) {
+    if (products == null) return fallback;
+    try {
+      return products.firstWhere((p) => p.id == productId).price;
+    } catch (_) {
+      return fallback;
+    }
+  }
+
+  String _liveProPrice(List<ProductDetails>? products) {
+    if (products == null) return '\$6.99';
+    try {
+      return products.firstWhere((p) => p.id == AppConstants.proMonthly).price;
+    } catch (_) {
+      return '\$6.99';
+    }
+  }
+
+  // Play's subscription policy requires billing terms to be visible near the
+  // point of purchase. This also carries the privacy pointer so the paywall
+  // has a working legal affordance.
+  void _showPurchaseTerms(BuildContext context) {
+    final cl = Cl.of(context);
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: cl.canvas,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.large)),
+      ),
+      builder: (_) => Padding(
+        padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 36, height: 4,
+                margin: const EdgeInsets.only(bottom: 20),
+                decoration: BoxDecoration(
+                  color: cl.inkWhisper,
+                  borderRadius: BorderRadius.circular(AppRadius.pill),
+                ),
+              ),
+            ),
+            Text('Billing & privacy',
+                style: GoogleFonts.dmSans(
+                    fontSize: 20, fontWeight: FontWeight.w700, color: cl.ink)),
+            const SizedBox(height: 16),
+            ...[
+              'Credit packs are one-time purchases. Credits are added to your account immediately after purchase and never expire.',
+              'Pro is a monthly subscription that renews automatically until cancelled. Manage or cancel anytime in Google Play → Subscriptions; cancelling stops future charges but does not refund the current period.',
+              'Payment is charged to your Google Play account at confirmation of purchase.',
+              'Your scan photos are processed to generate results and are not stored after analysis. See the full privacy policy in Settings → Legal.',
+            ].map((t) => Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: Text(t,
+                      style: GoogleFonts.dmSans(
+                          fontSize: 13, color: cl.inkMuted, height: 1.55)),
+                )),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final cl = Cl.of(context);
     final selectedProduct = ref.watch(selectedProductProvider);
-    ref.watch(iapProductsProvider);
+    final productsAsync = ref.watch(iapProductsProvider);
+    final liveProducts = productsAsync.value;
 
     return Scaffold(
       backgroundColor: cl.canvas,
@@ -193,7 +262,8 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
                     const SizedBox(height: 12),
 
                     ..._packs.map((pack) {
-                      final (id, label, price, perScan, isPopular, isBestValue) = pack;
+                      final (id, label, fallbackPrice, perScan, isPopular, isBestValue) = pack;
+                      final price = _livePrice(id, fallbackPrice, liveProducts);
                       final selected = selectedProduct == id;
                       return GestureDetector(
                         onTap: () =>
@@ -384,7 +454,7 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
                             crossAxisAlignment: CrossAxisAlignment.end,
                             children: [
                               Text(
-                                '\$6.99',
+                                _liveProPrice(liveProducts),
                                 style: GoogleFonts.dmSans(
                                   fontSize: 32,
                                   fontWeight: FontWeight.w800,
@@ -398,7 +468,7 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text(
+                                    if (liveProducts == null) Text(
                                       '\$9.99',
                                       style: GoogleFonts.dmSans(
                                         fontSize: 14,
@@ -512,12 +582,15 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
                         Text('  ·  ',
                             style: GoogleFonts.dmSans(
                                 fontSize: 11, color: cl.inkWhisper)),
-                        Text(
-                          'Privacy',
-                          style: GoogleFonts.dmSans(
-                            fontSize: 11,
-                            color: cl.inkMuted,
-                            decoration: TextDecoration.underline,
+                        GestureDetector(
+                          onTap: () => _showPurchaseTerms(context),
+                          child: Text(
+                            'Terms & Privacy',
+                            style: GoogleFonts.dmSans(
+                              fontSize: 11,
+                              color: cl.inkMuted,
+                              decoration: TextDecoration.underline,
+                            ),
                           ),
                         ),
                       ],

@@ -28,6 +28,11 @@ android {
         versionCode flutter.versionCode
         versionName flutter.versionName
         multiDexEnabled true
+
+        // AdMob application id injected into the manifest. Default is Google's
+        // official TEST id so debug/CI builds never touch the real ad account.
+        // The release build type below overrides this with the production id.
+        manifestPlaceholders += [admobAppId: 'ca-app-pub-3940256099942544~3347511713']
     }
 
     signingConfigs {
@@ -45,6 +50,9 @@ android {
             minifyEnabled false
             shrinkResources false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+
+            // Production AdMob application id (real ads). Debug keeps the test id.
+            manifestPlaceholders += [admobAppId: 'ca-app-pub-6102836677090604~5416784687']
         }
     }
 

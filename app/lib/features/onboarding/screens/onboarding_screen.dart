@@ -203,7 +203,7 @@ class _Page1 extends StatelessWidget {
               ),
               const SizedBox(width: 8),
               Text(
-                '2.1M people discovered their archetype this month',
+                'Private by design — your scans never leave your account.',
                 style: GoogleFonts.dmSans(fontSize: 12, color: cl.inkMuted),
               ),
             ],

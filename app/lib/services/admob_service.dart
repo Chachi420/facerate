@@ -6,6 +6,7 @@ class AdMobService {
   static InterstitialAd? _interstitialAd;
   static bool _rewardedAdLoading = false;
   static bool _interstitialAdLoading = false;
+  static bool _interstitialShowing = false;
 
   static BannerAd createBannerAd() {
     return BannerAd(
@@ -80,22 +81,30 @@ class AdMobService {
     );
   }
 
-  static Future<void> showInterstitialAd() async {
+  /// Shows a full-screen interstitial if one is loaded, then invokes
+  /// [onDismissed]. If no ad is ready (or one is already showing), [onDismissed]
+  /// fires immediately so callers can navigate without waiting.
+  static Future<void> showInterstitialAd({void Function()? onDismissed}) async {
     final ad = _interstitialAd;
-    if (ad == null) return;
+    if (ad == null || _interstitialShowing) {
+      onDismissed?.call();
+      return;
+    }
+    _interstitialShowing = true;
+
+    void cleanup(InterstitialAd shownAd) {
+      shownAd.dispose();
+      _interstitialAd = null;
+      _interstitialShowing = false;
+      loadInterstitialAd(); // preload the next one
+      onDismissed?.call();
+    }
 
     ad.fullScreenContentCallback = FullScreenContentCallback(
-      onAdDismissedFullScreenContent: (_) {
-        _interstitialAd = null;
-        loadInterstitialAd();
-      },
-      onAdFailedToShowFullScreenContent: (_, __) {
-        _interstitialAd = null;
-        loadInterstitialAd();
-      },
+      onAdDismissedFullScreenContent: cleanup,
+      onAdFailedToShowFullScreenContent: (shownAd, _) => cleanup(shownAd),
     );
 
     await ad.show();
-    _interstitialAd = null;
   }
 }

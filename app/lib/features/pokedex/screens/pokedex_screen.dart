@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:intl/intl.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../models/animal_match.dart';
 import '../../history/providers/history_provider.dart';
@@ -29,9 +30,13 @@ class PokedexScreen extends ConsumerWidget {
             Expanded(
               child: historyAsync.when(
                 data: (scans) {
+                  // Build unique animals with first-found date
                   final Map<String, AnimalMatch> uniqueAnimals = {};
-                  for (final scan in scans) {
+                  final Map<String, DateTime> firstFound = {};
+                  for (final scan in scans.reversed) {
+                    // reversed = oldest first, so putIfAbsent keeps earliest
                     uniqueAnimals.putIfAbsent(scan.animal.name, () => scan.animal);
+                    firstFound.putIfAbsent(scan.animal.name, () => scan.createdAt);
                   }
                   final animals = uniqueAnimals.values.toList()
                     ..sort((a, b) =>
@@ -39,15 +44,54 @@ class PokedexScreen extends ConsumerWidget {
 
                   if (animals.isEmpty) return const _EmptyState();
 
+                  // +1 for the locked "more to find" slot
+                  final itemCount = animals.length + 1;
+
                   return Column(
                     children: [
+                      // Progress header
                       Padding(
                         padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
-                        child: Row(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            EyebrowText.muted('${animals.length} discovered'),
-                            const Spacer(),
-                            ..._rarityBadges(animals, cl),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        '${animals.length} discovered',
+                                        style: GoogleFonts.dmSans(
+                                          fontSize: 20,
+                                          fontWeight: FontWeight.w700,
+                                          color: cl.ink,
+                                        ),
+                                      ),
+                                      Text(
+                                        'Keep scanning to unlock more archetypes',
+                                        style: GoogleFonts.dmSans(
+                                            fontSize: 12, color: cl.inkMuted),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                ..._rarityBadges(animals, cl),
+                              ],
+                            ),
+                            const SizedBox(height: 10),
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(4),
+                              child: LinearProgressIndicator(
+                                value: (animals.length / (animals.length + 3))
+                                    .clamp(0.0, 1.0),
+                                backgroundColor: cl.surfaceH,
+                                valueColor:
+                                    AlwaysStoppedAnimation(cl.accent),
+                                minHeight: 4,
+                              ),
+                            ),
                           ],
                         ),
                       ),
@@ -60,10 +104,19 @@ class PokedexScreen extends ConsumerWidget {
                             crossAxisCount: 2,
                             crossAxisSpacing: 12,
                             mainAxisSpacing: 12,
-                            childAspectRatio: 0.95,
+                            childAspectRatio: 0.88,
                           ),
-                          itemCount: animals.length,
-                          itemBuilder: (_, i) => _AnimalCard(animal: animals[i]),
+                          itemCount: itemCount,
+                          itemBuilder: (_, i) {
+                            if (i == animals.length) {
+                              return const _LockedSlot();
+                            }
+                            final animal = animals[i];
+                            return _AnimalCard(
+                              animal: animal,
+                              firstFound: firstFound[animal.name],
+                            );
+                          },
                         ),
                       ),
                     ],
@@ -121,14 +174,19 @@ class PokedexScreen extends ConsumerWidget {
 
 class _AnimalCard extends StatelessWidget {
   final AnimalMatch animal;
-  const _AnimalCard({required this.animal});
+  final DateTime? firstFound;
+  const _AnimalCard({required this.animal, this.firstFound});
 
   @override
   Widget build(BuildContext context) {
     final cl = Cl.of(context);
     final color = cl.rarityColor(animal.rarity);
+    final foundLabel = firstFound != null
+        ? DateFormat('d MMM yy').format(firstFound!)
+        : null;
+
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: cl.surface,
         borderRadius: BorderRadius.circular(AppRadius.card),
@@ -144,20 +202,20 @@ class _AnimalCard extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Text(animal.emoji, style: const TextStyle(fontSize: 40)),
-          const SizedBox(height: 10),
+          Text(animal.emoji, style: const TextStyle(fontSize: 36)),
+          const SizedBox(height: 8),
           Text(
             animal.name,
             style: GoogleFonts.dmSans(
-              fontSize: 15, fontWeight: FontWeight.w600, color: cl.ink,
+              fontSize: 13, fontWeight: FontWeight.w600, color: cl.ink,
             ),
             textAlign: TextAlign.center,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 6),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
             decoration: BoxDecoration(
               color: color.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(AppRadius.pill),
@@ -166,10 +224,64 @@ class _AnimalCard extends StatelessWidget {
             child: Text(
               animal.rarity.toUpperCase(),
               style: GoogleFonts.dmSans(
-                fontSize: 10, letterSpacing: 1.2,
+                fontSize: 9, letterSpacing: 1.2,
                 fontWeight: FontWeight.w600, color: color,
               ),
             ),
+          ),
+          if (foundLabel != null) ...[
+            const SizedBox(height: 5),
+            Text(
+              'Found $foundLabel',
+              style: GoogleFonts.dmSans(fontSize: 9, color: cl.inkWhisper),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _LockedSlot extends StatelessWidget {
+  const _LockedSlot();
+
+  @override
+  Widget build(BuildContext context) {
+    final cl = Cl.of(context);
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: cl.surface,
+        borderRadius: BorderRadius.circular(AppRadius.card),
+        border: Border.all(
+          color: cl.inkWhisper.withValues(alpha: 0.3),
+          width: 0.5,
+          style: BorderStyle.solid,
+        ),
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            width: 44, height: 44,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: cl.surfaceH,
+              border: Border.all(color: cl.inkWhisper.withValues(alpha: 0.4), width: 0.5),
+            ),
+            child: Icon(Icons.lock_outline_rounded, size: 20, color: cl.inkWhisper),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Unknown',
+            style: GoogleFonts.dmSans(
+              fontSize: 13, fontWeight: FontWeight.w600, color: cl.inkWhisper),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Scan to discover',
+            style: GoogleFonts.dmSans(fontSize: 10, color: cl.inkWhisper),
+            textAlign: TextAlign.center,
           ),
         ],
       ),

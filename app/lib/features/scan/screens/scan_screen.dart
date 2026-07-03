@@ -241,7 +241,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
 
   bool _outOfCredits() {
     final authState = ref.read(authStateProvider).value;
-    if (authState == null) return false; // guest scans free
+    if (authState == null) return false; // no session yet, let backend enforce
     final profile = ref.read(currentUserProfileStreamProvider).value;
     if (profile == null) return false; // can't check, let backend handle it
     if (profile.isPro) return false;   // pro is unlimited

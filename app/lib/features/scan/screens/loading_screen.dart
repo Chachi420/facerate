@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../services/api_service.dart';
+import '../../../services/admob_service.dart';
 import '../../../widgets/noise_bg.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../results/providers/results_provider.dart';
@@ -14,41 +15,41 @@ export '../../../services/api_service.dart' show NoFaceException, NoCreditsExcep
 
 // ── Rotating fact pool (shuffled each session) ──────────────────────
 const _kFacts = [
-  ('Face science', 'Facial symmetry is processed by the brain in under 150 ms — before conscious thought kicks in.'),
-  ('Sleep science', 'Just one night of poor sleep reduces skin hydration by up to 30% and puffs under-eyes by 40%.'),
-  ('Golden ratio', 'The ideal eye-to-mouth distance is roughly 36% of total face length — a near-universal beauty cue.'),
-  ('Skin tip', 'SPF 30 worn daily prevents up to 24% of collagen loss by age 40. Nothing else comes close.'),
-  ('Jawline fact', 'Chewing tougher foods over years measurably widens and sharpens the mandibular angle.'),
-  ('Grooming', 'A well-maintained beard can mask weak chin projection and visually strengthen the lower third.'),
-  ('Hydration', 'Drinking 500 ml of water raises skin radiance scores by ~30% within 30 minutes.'),
-  ('Lighting truth', 'Overcast natural light is the most flattering — it eliminates harsh shadows and evens skin tone.'),
-  ('Eye spacing', 'Eyes spaced one eye-width apart score highest for attractiveness across all demographics studied.'),
-  ('Skin type', 'Your skin type can shift seasonally — oily in summer, drier in winter — and changes each decade.'),
-  ('Face shape', 'The oval face shape is considered the most universally balanced, fitting almost any hairstyle.'),
-  ('Collagen', 'Collagen production drops ~1% per year after 25. Vitamin C serums can slow this measurably.'),
-  ('Cold water', 'Rinsing your face with cold water for 30 seconds each morning tightens pores and reduces puffiness.'),
-  ('Beard science', 'Heavy stubble (around 10 days) consistently rates highest for attractiveness in peer-reviewed studies.'),
-  ('Dark circles', 'Dark circles are 60% genetic (skin thinness) and 40% lifestyle — sleep, hydration, and salt intake.'),
-  ('Brow tip', 'Groomed brows that follow your natural arch frame the face and draw attention to the eyes.'),
-  ('Nasal tip', 'A slightly upturned nasal tip (around 106°) is rated most attractive in Western facial research.'),
-  ('Skin glow', 'A 20-minute brisk walk measurably improves skin blood flow and gives a visible post-exercise glow.'),
-  ('Cheekbones', 'High, forward-projected cheekbones signal lower cortisol levels — a subconscious health cue.'),
-  ('Retinol', 'Retinol is the only topical ingredient with FDA-accepted evidence for reducing fine lines. Start low.'),
-  ('Face fat', 'Lower body fat percentage (15–20% for men, 22–26% for women) creates sharper facial definition.'),
-  ('Posture', 'Chin-forward posture reduces the appearance of a strong jawline by 30% compared to upright posture.'),
-  ('Haircut', 'The right haircut can add or subtract 1–2 cm from perceived face length or width optically.'),
-  ('Redness', 'Green tea extract applied topically reduces facial redness (erythema) in 8 of 10 clinical trials.'),
-  ('Nose bridge', 'A straight, defined nose bridge strengthens the midface and improves profile scores significantly.'),
-  ('Exfoliation', 'Chemical exfoliation (AHA/BHA) outperforms physical scrubs — less micro-tearing, better cell turnover.'),
-  ('Under-eye', 'Caffeine-based eye creams reduce puffiness by constricting blood vessels — works in under 15 minutes.'),
-  ('Face card', 'Your face changes measurably with weight: 4 kg of fat loss adds visible cheek definition on average.'),
-  ('Philtrum', 'A shorter philtrum (upper lip to nose distance) correlates with a youthful facial proportion.'),
-  ('Niacinamide', 'Niacinamide (B3) reduces pore appearance, evens skin tone, and pairs well with every other active.'),
-  ('Lighting angle', 'Light from 45° above and slightly to the side is the most used angle in professional photography.'),
-  ('Forehead', 'A forehead that is roughly one-third of total face height fits the classical golden facial thirds.'),
-  ('Zinc', 'Zinc deficiency is a leading cause of adult acne — often missed and easily corrected with diet.'),
-  ('Eye contact', 'Faces with slightly wider-open eyes are consistently rated more approachable and attractive.'),
-  ('Lip ratio', 'The ideal upper-to-lower lip ratio is roughly 1:1.6 — the lower lip slightly fuller.'),
+  ('Face science', 'Research suggests facial symmetry is processed very quickly — often before we consciously register a face.'),
+  ('Sleep science', 'Even one night of poor sleep can visibly affect skin hydration and cause under-eye puffiness by morning.'),
+  ('Proportion', 'Many attractiveness studies reference "golden ratio" proportions — though what looks good varies widely by culture and individual taste.'),
+  ('Sun protection', 'Daily SPF use is one of the most consistently recommended steps for slowing visible skin aging.'),
+  ('Jawline', 'Habitual chewing of tougher foods may contribute to jaw muscle development over time — though genetics plays a larger role.'),
+  ('Grooming', 'A well-maintained beard can reshape how the lower face reads — proportion matters more than length.'),
+  ('Hydration', 'Adequate hydration supports skin elasticity and can reduce the appearance of dullness throughout the day.'),
+  ('Lighting truth', 'Soft, diffuse natural light tends to be the most flattering for portraits — it minimizes harsh shadows.'),
+  ('Skin type', 'Your skin type can shift with seasons, climate, and age. What worked at 20 may not at 30.'),
+  ('Face shape', 'Oval face shapes are often described as the most versatile for styling choices — but every shape has its strengths.'),
+  ('Collagen', 'Collagen production gradually slows with age. Vitamin C and SPF are among the most evidence-backed ways to support it.'),
+  ('Cold water', 'A cold-water rinse in the morning can reduce puffiness and help wake up skin tone.'),
+  ('Beard science', 'Research on beard attractiveness is surprisingly mixed — heavy stubble tends to score well, but preferences vary.'),
+  ('Dark circles', 'Dark circles come from a mix of genetics (thin skin, pigment) and lifestyle (sleep, hydration, salt). Both matter.'),
+  ('Brow tip', 'Groomed brows that follow your natural arch tend to frame the eyes and balance the upper face.'),
+  ('Skin glow', 'Regular exercise improves circulation, which can give skin a healthier, more even appearance over time.'),
+  ('Cheekbones', 'Forward-projected cheekbones are often associated with certain attractiveness patterns — though beauty is far broader than any single feature.'),
+  ('Retinol', 'Retinol remains one of the most studied topical ingredients for texture and fine lines — start with a low percentage.'),
+  ('Face and weight', 'Modest weight changes can visibly affect facial definition for many people, though genetics determines where fat is stored.'),
+  ('Posture', 'Upright posture affects how the jawline and neck appear in photos and in person. It is also trainable.'),
+  ('Haircut', 'The right cut can visually adjust perceived face proportions — longer on the sides can shorten a wide face.'),
+  ('Redness', 'Green tea extract and niacinamide are among the gentler options for reducing skin redness and inflammation.'),
+  ('Exfoliation', 'Chemical exfoliation (AHAs and BHAs) is generally considered gentler than physical scrubs for most skin types.'),
+  ('Under-eye', 'Caffeine-infused eye products may temporarily reduce puffiness by affecting blood vessel dilation.'),
+  ('Weight and face', 'Body composition changes often show in the face first for many people — though this is highly individual.'),
+  ('Niacinamide', 'Niacinamide (vitamin B3) is broadly well-tolerated and has good evidence for pore appearance and skin tone.'),
+  ('Lighting angle', 'Photographers commonly use light at roughly 45° to the face — it creates gentle dimension without harsh shadows.'),
+  ('Forehead', 'Classical "golden thirds" proportions describe a forehead roughly one-third of total face height — a useful framing concept, not a rule.'),
+  ('Zinc', 'Zinc plays a role in skin health, and deficiency can show up as acne or inflammation. It is easy to test for.'),
+  ('Expression', 'A genuinely relaxed, open expression tends to read as more approachable in photos than a forced smile.'),
+  ('Lip care', 'Consistent lip hydration is one of the simplest and most overlooked parts of a grooming routine.'),
+  ('Skincare basics', 'Cleanser, moisturizer, and SPF — most dermatologists agree these three cover the majority of daily skin needs.'),
+  ('Consistency', 'Skincare results are largely cumulative. A simple routine done consistently tends to outperform complex routines done sporadically.'),
+  ('Genetics', 'Many facial features are strongly genetic. Your job is to optimize what you can — lighting, grooming, health habits.'),
+  ('Perceived age', 'Perceived age often tracks with skin quality, posture, and energy — all of which respond to lifestyle changes.'),
 ];
 
 class LoadingScreen extends ConsumerStatefulWidget {
@@ -123,12 +124,15 @@ class _LoadingScreenState extends ConsumerState<LoadingScreen>
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final userAsync = ref.read(currentUserProfileStreamProvider);
-      final totalScans = userAsync.when(
-        data: (u) => u?.totalScans ?? 0,
-        loading: () => 0,
-        error: (_, __) => 0,
-      );
+      final profile = userAsync.value;
+      final totalScans = profile?.totalScans ?? 0;
       if (mounted) setState(() => _isReturningUser = totalScans > 0);
+
+      // Preload the post-result interstitial while the AI works, so it's ready
+      // the moment the user leaves the summary. Pro users never see ads.
+      if (!(profile?.isPro ?? false)) {
+        AdMobService.loadInterstitialAd();
+      }
     });
 
     _runSteps();
@@ -145,18 +149,18 @@ class _LoadingScreenState extends ConsumerState<LoadingScreen>
 
   Future<void> _analyze() async {
     final authState = ref.read(authStateProvider).value;
-    final userId = authState?.uid ?? 'guest';
+    final userId = authState?.uid ?? '';
     final apiService = ApiService();
 
     try {
-      final idToken = userId != 'guest' ? await authState!.getIdToken() : null;
+      final idToken = authState != null ? await authState.getIdToken() : null;
       final result = await apiService.analyzeFace(
           widget.imageFile, userId, widget.mood, widget.mode, idToken);
       ref.read(currentScanProvider.notifier).state = result;
 
       // Persist scan to history if the user has enabled it.
       // (Stats — streak, totalScans, lastScanDate — are updated by the backend.)
-      if (userId != 'guest') {
+      if (authState != null) {
         final saveHistory = ref.read(settingsProvider).saveHistory;
         if (saveHistory) {
           await ref.read(firestoreServiceProvider).saveScan(userId, result);

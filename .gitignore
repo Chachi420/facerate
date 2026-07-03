@@ -48,3 +48,9 @@ Thumbs.db
 # Logs
 *.log
 logs/
+
+# Native build cache
+app/android/app/.cxx/
+
+# Design archive (unzipped in mirror_design/)
+mirror.zip

@@ -32,12 +32,20 @@ class HistoryScreen extends ConsumerWidget {
               child: historyAsync.when(
                 data: (scans) {
                   if (scans.isEmpty) return const _EmptyState();
+                  // scans are newest-first; chart wants oldest-first
+                  final chronological = scans.reversed.toList();
                   return ListView.builder(
                     padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-                    itemCount: scans.length,
+                    itemCount: scans.length + 1,
                     itemBuilder: (context, i) {
-                      final scan = scans[i];
-                      final prev = i + 1 < scans.length ? scans[i + 1] : null;
+                      if (i == 0) {
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 16),
+                          child: _ScoreChart(scans: chronological),
+                        );
+                      }
+                      final scan = scans[i - 1];
+                      final prev = i < scans.length ? scans[i] : null;
                       return _ScanCard(scan: scan, previous: prev);
                     },
                   );
@@ -60,6 +68,155 @@ class HistoryScreen extends ConsumerWidget {
       ),
     );
   }
+}
+
+// ── Score chart ────────────────────────────────────────────────────────
+class _ScoreChart extends StatelessWidget {
+  final List<ScanResult> scans; // oldest → newest
+  const _ScoreChart({required this.scans});
+
+  @override
+  Widget build(BuildContext context) {
+    final cl = Cl.of(context);
+    if (scans.length < 2) return const SizedBox.shrink();
+
+    final scores = scans.map((s) => s.score).toList();
+    final first = scores.first;
+    final last = scores.last;
+    final delta = last - first;
+    final deltaColor = delta >= 0 ? cl.teal : cl.scoreDown;
+    final deltaLabel = '${delta >= 0 ? '+' : ''}${delta.toStringAsFixed(1)}';
+
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+      decoration: BoxDecoration(
+        color: cl.surface,
+        borderRadius: BorderRadius.circular(AppRadius.card),
+        boxShadow: cl.cardShadow,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              EyebrowText.accent('Score over time'),
+              const Spacer(),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: deltaColor.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(AppRadius.pill),
+                  border: Border.all(color: deltaColor.withValues(alpha: 0.4), width: 0.5),
+                ),
+                child: Text(
+                  deltaLabel,
+                  style: GoogleFonts.dmSans(
+                    fontSize: 11, fontWeight: FontWeight.w700, color: deltaColor),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            height: 72,
+            child: CustomPaint(
+              painter: _ChartPainter(scores: scores, accentColor: cl.accent),
+              size: Size.infinite,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                DateFormat('d MMM').format(scans.first.createdAt),
+                style: GoogleFonts.dmSans(fontSize: 10, color: cl.inkWhisper),
+              ),
+              Text(
+                '${scans.length} scans',
+                style: GoogleFonts.dmSans(fontSize: 10, color: cl.inkWhisper),
+              ),
+              Text(
+                DateFormat('d MMM').format(scans.last.createdAt),
+                style: GoogleFonts.dmSans(fontSize: 10, color: cl.inkWhisper),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ChartPainter extends CustomPainter {
+  final List<double> scores;
+  final Color accentColor;
+  const _ChartPainter({required this.scores, required this.accentColor});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (scores.length < 2) return;
+
+    final minScore = scores.reduce((a, b) => a < b ? a : b);
+    final maxScore = scores.reduce((a, b) => a > b ? a : b);
+    final range = (maxScore - minScore).clamp(1.0, double.infinity);
+
+    double xOf(int i) => i / (scores.length - 1) * size.width;
+    double yOf(double s) => size.height - ((s - minScore) / range) * size.height;
+
+    final points = [
+      for (int i = 0; i < scores.length; i++) Offset(xOf(i), yOf(scores[i])),
+    ];
+
+    // Gradient fill under line
+    final path = Path()..moveTo(points.first.dx, size.height);
+    for (final p in points) path.lineTo(p.dx, p.dy);
+    path.lineTo(points.last.dx, size.height);
+    path.close();
+
+    canvas.drawPath(
+      path,
+      Paint()
+        ..shader = LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [accentColor.withValues(alpha: 0.25), accentColor.withValues(alpha: 0.0)],
+        ).createShader(Rect.fromLTWH(0, 0, size.width, size.height)),
+    );
+
+    // Line
+    final linePaint = Paint()
+      ..color = accentColor
+      ..strokeWidth = 2
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round;
+
+    final linePath = Path()..moveTo(points.first.dx, points.first.dy);
+    for (int i = 1; i < points.length; i++) {
+      linePath.lineTo(points[i].dx, points[i].dy);
+    }
+    canvas.drawPath(linePath, linePaint);
+
+    // Dot on last point
+    canvas.drawCircle(
+      points.last,
+      4,
+      Paint()..color = accentColor,
+    );
+    canvas.drawCircle(
+      points.last,
+      4,
+      Paint()
+        ..color = Colors.white.withValues(alpha: 0.9)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.5,
+    );
+  }
+
+  @override
+  bool shouldRepaint(_ChartPainter old) =>
+      old.scores != scores || old.accentColor != accentColor;
 }
 
 // ── Scan card ─────────────────────────────────────────────────────────

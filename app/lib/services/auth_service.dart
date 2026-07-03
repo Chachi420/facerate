@@ -3,21 +3,16 @@ import 'package:google_sign_in/google_sign_in.dart';
 
 class AuthService {
   final _auth = FirebaseAuth.instance;
-  final _googleSignIn = GoogleSignIn();
+
+  // serverClientId = the web OAuth client ID from google-services.json (client_type 3).
+  // Required on Android so the OAuth flow produces an idToken Firebase can verify.
+  final _googleSignIn = GoogleSignIn(
+    serverClientId: '565232444150-f7s17j54k7ls281b75afnuk8ii2m424i.apps.googleusercontent.com',
+  );
 
   Stream<User?> get authStateChanges => _auth.authStateChanges();
 
   User? get currentUser => _auth.currentUser;
-
-  bool get isGuest => _auth.currentUser?.isAnonymous ?? false;
-
-  Future<UserCredential> signInWithEmail(String email, String password) async {
-    return _auth.signInWithEmailAndPassword(email: email, password: password);
-  }
-
-  Future<UserCredential> signUpWithEmail(String email, String password) async {
-    return _auth.createUserWithEmailAndPassword(email: email, password: password);
-  }
 
   Future<UserCredential?> signInWithGoogle() async {
     final googleUser = await _googleSignIn.signIn();
@@ -30,10 +25,6 @@ class AuthService {
     );
 
     return _auth.signInWithCredential(credential);
-  }
-
-  Future<UserCredential> signInAnonymously() async {
-    return _auth.signInAnonymously();
   }
 
   Future<void> signOut() async {

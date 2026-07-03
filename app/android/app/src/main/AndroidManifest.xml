@@ -27,10 +27,11 @@
         android:hardwareAccelerated="true"
         android:networkSecurityConfig="@xml/network_security_config">
 
-        <!-- AdMob App ID — replace with real ID from AdMob console -->
+        <!-- AdMob App ID — injected by Gradle (manifestPlaceholders).
+             Debug falls back to Google's test id; release passes -PadmobAppId. -->
         <meta-data
             android:name="com.google.android.gms.ads.APPLICATION_ID"
-            android:value="ca-app-pub-3940256099942544~3347511713"/>
+            android:value="${admobAppId}"/>
 
         <!-- Resolve manifest merger conflict between play-services-measurement-api and play-services-ads-lite -->
         <property

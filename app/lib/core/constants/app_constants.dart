@@ -1,22 +1,39 @@
+import 'package:flutter/foundation.dart';
+
 class AppConstants {
   static const String backendUrl = 'https://facerate-8lno.onrender.com';
   static const String localBackendUrl = 'http://10.0.2.2:8000';
-
-  // Use localBackendUrl during development; switch to backendUrl for production
   static const String apiBaseUrl = backendUrl;
 
-  // AdMob test IDs — replace with real IDs from AdMob console before release
-  static const String admobAppId = 'ca-app-pub-3940256099942544~3347511713';
-  static const String bannerAdUnitId = 'ca-app-pub-3940256099942544/6300978111';
-  static const String rewardedAdUnitId = 'ca-app-pub-3940256099942544/5224354917';
-  static const String interstitialAdUnitId = 'ca-app-pub-3940256099942544/1033173712';
+  // ── AdMob IDs ──────────────────────────────────────────────────────
+  // Real ad unit ids are used in RELEASE builds; Google's official TEST ids
+  // are used in debug/profile so we never serve — or accidentally click — a
+  // live ad during development (clicking your own live ads gets the account
+  // banned). The manifest application id is chosen the same way in
+  // android/app/build.gradle (test id by default, prod id in the release type).
+  static const String _prodBannerUnitId       = 'ca-app-pub-6102836677090604/8755218296';
+  static const String _prodInterstitialUnitId = 'ca-app-pub-6102836677090604/5236856672';
+  static const String _prodRewardedUnitId     = 'ca-app-pub-6102836677090604/4745902084';
 
-  // IAP product IDs (configure in Google Play Console)
-  static const String creditsProduct10 = 'credits_10';
-  static const String creditsProduct30 = 'credits_30';
+  static const String _testBannerUnitId       = 'ca-app-pub-3940256099942544/6300978111';
+  static const String _testRewardedUnitId     = 'ca-app-pub-3940256099942544/5224354917';
+  static const String _testInterstitialId     = 'ca-app-pub-3940256099942544/1033173712';
+
+  static const bool _useProdAds = kReleaseMode;
+
+  static const String bannerAdUnitId       = _useProdAds ? _prodBannerUnitId : _testBannerUnitId;
+  static const String interstitialAdUnitId = _useProdAds ? _prodInterstitialUnitId : _testInterstitialId;
+  static const String rewardedAdUnitId     = _useProdAds ? _prodRewardedUnitId : _testRewardedUnitId;
+
+  static bool get usingTestAds => !_useProdAds;
+
+  // ── IAP product IDs (configure in Google Play Console) ─────────────
+  static const String creditsProduct10  = 'credits_10';
+  static const String creditsProduct30  = 'credits_30';
   static const String creditsProduct100 = 'credits_100';
-  static const String proMonthly = 'pro_monthly';
+  static const String proMonthly        = 'pro_monthly';
 
+  // ── Loading-screen fact pool ────────────────────────────────────────
   static const List<String> dailyTips = [
     'Good lighting dramatically improves every facial feature.',
     'Hunter eyes are a genetic gift — frame them with clean brows.',

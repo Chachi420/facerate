@@ -7,6 +7,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../models/scan_result.dart';
+import '../../../services/admob_service.dart';
+import '../../auth/providers/auth_provider.dart';
 import '../providers/results_provider.dart';
 import '../widgets/section_card.dart';
 import '../widgets/feature_bar.dart';
@@ -22,6 +24,23 @@ import '../widgets/face_blueprint.dart';
 class SummaryScreen extends ConsumerWidget {
   final ScanResult result;
   const SummaryScreen({super.key, required this.result});
+
+  // Leaving the results screen is the natural, non-intrusive moment to show a
+  // full-screen ad. Pro users never see one; free users see it once per scan
+  // (the interstitial was preloaded on the loading screen). The router is
+  // captured before the async gap so we don't touch a stale BuildContext.
+  void _leaveToHome(BuildContext context, WidgetRef ref) {
+    final router = GoRouter.of(context);
+    final canPop = router.canPop();
+    void go() => canPop ? router.pop() : router.go('/home');
+
+    final isPro = ref.read(currentUserProfileStreamProvider).value?.isPro ?? false;
+    if (isPro) {
+      go();
+    } else {
+      AdMobService.showInterstitialAd(onDismissed: go);
+    }
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -55,7 +74,7 @@ class SummaryScreen extends ConsumerWidget {
             Masthead(
               left: EyebrowText('Scan #${scanCount.toString().padLeft(3, '0')}'),
               right: EyebrowText(dateStr.toUpperCase()),
-              onBack: () => context.canPop() ? context.pop() : context.go('/home'),
+              onBack: () => _leaveToHome(context, ref),
             ),
             Expanded(
               child: Stack(
@@ -168,6 +187,12 @@ class SummaryScreen extends ConsumerWidget {
                           ),
                         ),
                         const SizedBox(height: 12),
+
+                        // Score breakdown — top boosters & detractors
+                        if (result.features.isNotEmpty)
+                          _ScoreBreakdown(result: result),
+                        if (result.features.isNotEmpty)
+                          const SizedBox(height: 12),
 
                         // Archetype pills
                         Wrap(
@@ -348,6 +373,114 @@ class SummaryScreen extends ConsumerWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+// ── Score breakdown: top boosters & detractors ─────────────────────────
+class _ScoreBreakdown extends StatelessWidget {
+  final ScanResult result;
+  const _ScoreBreakdown({required this.result});
+
+  @override
+  Widget build(BuildContext context) {
+    final cl = Cl.of(context);
+
+    final sorted = result.features.entries.toList()
+      ..sort((a, b) => b.value.score.compareTo(a.value.score));
+
+    final boosters  = sorted.take(3).toList();
+    final detractor = sorted.lastOrNull;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: cl.surface,
+        borderRadius: BorderRadius.circular(AppRadius.card),
+        boxShadow: cl.cardShadow,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          EyebrowText.accent('Why this score'),
+          const SizedBox(height: 12),
+
+          // Boosters
+          ...boosters.map((e) => _BreakdownRow(
+                name: e.key,
+                score: e.value.score,
+                positive: true,
+                cl: cl,
+              )),
+
+          // Detractor — only show if meaningfully lower than average
+          if (detractor != null &&
+              detractor.value.score < result.score - 0.5) ...[
+            const SizedBox(height: 4),
+            _BreakdownRow(
+              name: detractor.key,
+              score: detractor.value.score,
+              positive: false,
+              cl: cl,
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _BreakdownRow extends StatelessWidget {
+  final String name;
+  final double score;
+  final bool positive;
+  final Cl cl;
+  const _BreakdownRow({
+    required this.name,
+    required this.score,
+    required this.positive,
+    required this.cl,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final color = positive ? cl.teal : cl.scoreDown;
+    final arrow = positive ? '↑' : '↓';
+    final label = name.replaceAllMapped(
+      RegExp(r'_([a-z])'),
+      (m) => ' ${m.group(1)!.toUpperCase()}',
+    );
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        children: [
+          Container(
+            width: 22, height: 22,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: Center(
+              child: Text(
+                arrow,
+                style: TextStyle(fontSize: 11, color: color, fontWeight: FontWeight.w700),
+              ),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              label[0].toUpperCase() + label.substring(1),
+              style: GoogleFonts.dmSans(fontSize: 13, color: cl.ink),
+            ),
+          ),
+          Text(
+            score.toStringAsFixed(1),
+            style: GoogleFonts.dmSans(
+              fontSize: 13, fontWeight: FontWeight.w700, color: color),
+          ),
+        ],
       ),
     );
   }
